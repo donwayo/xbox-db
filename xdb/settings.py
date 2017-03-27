@@ -78,8 +78,7 @@ WSGI_APPLICATION = 'xdb.wsgi.application'
 # https://docs.djangoproject.com/en/1.10/ref/settings/#databases
 
 
-MONGODB_URI = os.environ['MONGODB_URI'][:10]
-print(MONGODB_URI)
+MONGODB_URI = os.environ['MONGODB_URI'][10:]
 host_part, db_name = MONGODB_URI.split('/')
 creds_part, host_part = host_part.split('@')
 username, password = creds_part.split(':')
