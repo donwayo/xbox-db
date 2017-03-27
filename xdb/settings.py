@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     # http://whitenoise.evans.io/en/stable/django.html#using-whitenoise-in-development
     'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
+    'cxbx_compat.apps.CxbxCompatConfig'
 ]
 
 MIDDLEWARE = [
@@ -79,12 +80,12 @@ WSGI_APPLICATION = 'xdb.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/1.10/ref/settings/#databases
 
-
-MONGODB_URI = os.environ['MONGODB_URI'][10:]
-host_part, db_name = MONGODB_URI.split('/')
-creds_part, host_part = host_part.split('@')
-username, password = creds_part.split(':')
-host, port = host_part.split(':')
+if os.environ.get('MONGODB_URI', False):
+    MONGODB_URI = os.environ['MONGODB_URI'][10:]
+    host_part, db_name = MONGODB_URI.split('/')
+    creds_part, host_part = host_part.split('@')
+    username, password = creds_part.split(':')
+    host, port = host_part.split(':')
 
 DATABASES = {
     'default': {

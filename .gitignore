@@ -91,3 +91,5 @@ ENV/
 .env
 
 staticfiles
+
+.sqlite3
