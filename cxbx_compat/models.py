@@ -39,4 +39,4 @@ class Executable(models.Model):
     title = models.ForeignKey(Title)
 
     def __str__(self):
-        return self.file_name
+        return '{0}{1}{2}'.format(self.title, self.disk_path, self.file_name)
