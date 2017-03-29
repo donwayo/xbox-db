@@ -6,7 +6,7 @@ from django.shortcuts import render
 from django.utils.encoding import force_text
 
 from xdb.utils.cxbx import XboxTitleLog
-from cxbx_compat.models import Title, Game, Executable
+from cxbx_compat.models import Title, Game, Executable, XDKLibrary
 from django.contrib.admin.models import LogEntry, ADDITION
 
 
@@ -65,10 +65,23 @@ def process_xbe_info(xbe_info_file, user_pk):
             title=title
         )
 
-        executable.save()
         if created:
             log_action(executable, user_pk, log_msg)
         ret = created
+
+        for lib in xlog['libs']:
+            xdk_lib, created = XDKLibrary.objects.get_or_create(
+                xdk_version=int(lib['ver']),
+                qfe_version=int(lib['QFE']),
+                name=lib['name']
+            )
+            xdk_lib.save()
+            if created:
+                log_action(xdk_lib, user_pk, log_msg)
+
+            executable.xdk_libraries.add(xdk_lib)
+
+        executable.save()
 
     return ret
 

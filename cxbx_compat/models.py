@@ -30,13 +30,29 @@ class Build(models.Model):
         return 'Cxbx-Reloaded [{0}]'.format(self.build_id)
 
 
+class XDKLibrary(models.Model):
+    name = models.CharField(max_length=255)
+    xdk_version = models.IntegerField()
+    qfe_version = models.IntegerField()
+
+    class Meta:
+        verbose_name_plural = 'XDK Libraries'
+
+    def __str__(self):
+        return '[{1}] {0}'.format(self.name, self.xdk_version)
+
+
 class Executable(models.Model):
 
-    file_name = models.CharField(max_length=256)
+    file_name = models.CharField(max_length=255)
     signature = models.CharField(max_length=512, unique=True)
     disk_path = models.CharField(max_length=1024)
 
     title = models.ForeignKey(Title)
 
+    xdk_libraries = models.ManyToManyField(XDKLibrary)
+
     def __str__(self):
         return '{0}{1}{2}'.format(self.title, self.disk_path, self.file_name)
+
+

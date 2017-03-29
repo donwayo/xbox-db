@@ -8,7 +8,15 @@ class XboxTitleLog(object):
     function_re = re.compile('HLE: 0x([0-9A-F]{8}) -> ([^ ]*)(?: \((.*)\))?\n')
 
     xbe_info_re = re.compile(
-            'al Signature[^<]+<Hex Dump>([^<]+)[^\0]*Title ID[^:]+: 0x([A-F0-9]{8})[^\0]+Title[^:]+: L"([^"]+)"', flags=re.M)
+        'al Signature[^<]+<Hex Dump>([^<]+)[^\0]*Title ID[^:]+: 0x([A-F0-9]{8})[^\0]+Title[^:]+: L?"([^"]+)"',
+        flags=re.M
+    )
+    xbe_info_libs_re = re.compile(
+        r'Library Name[^:]*: (?P<name>[^\r\n]+)[\r\n]+' +
+        'Ver[^\.]+\.0\.(?P<ver>\d{4})[\r\n]+Flags[^:]+:.*' +
+        'QFEVersion : 0x(?P<QFE>\d{4})',
+        flags=re.M
+    )
 
     def __init__(self, krnl_debug_name, xbe_file):
         self.source_file = krnl_debug_name
@@ -21,7 +29,8 @@ class XboxTitleLog(object):
             'title_id': None,
             'title_name': None,
             'disk_path': '/',
-            'file_name': 'default.xbe'
+            'file_name': 'default.xbe',
+            'libs': []
         }
 
         contents = source_file.read()
@@ -31,6 +40,7 @@ class XboxTitleLog(object):
         if m_groups and len(m_groups) == 3:
             signature, xbe_info['title_id'], xbe_info['title_name'] = m_groups
             xbe_info['signature'] = re.sub('[^A-F0-9]', '', signature)
+            xbe_info['libs'] = [lib.groupdict() for lib in XboxTitleLog.xbe_info_libs_re.finditer(contents.decode())]
 
         return xbe_info
 
