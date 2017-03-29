@@ -26,30 +26,9 @@
                     <h3 class="panel-title">Please Sign In</h3>
                 </div>
                 <div class="panel-body">
-                    <form method="post" action="{% url 'login' %}">
-{% csrf_token %}
+                    <a href="{% url 'social:begin' 'github' %}"><img src="https://assets-cdn.github.com/images/modules/logos_page/GitHub-Mark.png" border="0"/></a>
 
-                        <p class="bs-component">
-                            <table>
-                                <tr>
-                                    <td>{{ form.username.label_tag }}</td>
-                                    <td>{{ form.username }}</td>
-                                </tr>
-                                <tr>
-                                    <td>{{ form.password.label_tag }}</td>
-                                    <td>{{ form.password }}</td>
-                                </tr>
-                            </table>
-                        </p>
-                        <p class="bs-component">
-                            <center>
-                                <input class="btn btn-success btn-sm" type="submit" value="login" />
-                            </center>
-                        </p>
-                        <input type="hidden" name="next" value="{{ next }}" />
-                    </form>
-
-                    <a href="{% url 'social:begin' 'github' %}">Login with Github.</a>
+                    <a href="{% url 'social:begin' 'github' %}">Login via Github</a>
 
                 </div>
             </div>
