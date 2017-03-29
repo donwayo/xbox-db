@@ -7,7 +7,7 @@ from django.utils.encoding import force_text
 
 from xdb.utils.cxbx import XboxTitleLog
 from cxbx_compat.models import Title, Game, Executable
-from django.contrib.admin.models import LogEntry, ADDITION, CHANGE, DELETION
+from django.contrib.admin.models import LogEntry, ADDITION
 
 
 # Create your views here.
@@ -48,8 +48,15 @@ def process_xbe_info(xbe_info_file, user_pk):
     xlog = XboxTitleLog.parse_xbe_info(xbe_info_file)
 
     if xlog['title_id']:
+        log_msg = 'Created from file upload ({0})'.format(xbe_info_file.name)
+
         game, created = Game.objects.get_or_create(name=xlog['title_name'])
+        if created:
+            log_action(game, user_pk, log_msg)
+
         title, created = Title.objects.get_or_create(title_id=xlog['title_id'], game=game)
+        if created:
+            log_action(title, user_pk, log_msg)
 
         executable, created = Executable.objects.get_or_create(
             signature=xlog['signature'],
@@ -60,14 +67,18 @@ def process_xbe_info(xbe_info_file, user_pk):
 
         executable.save()
         if created:
-            LogEntry.objects.log_action(
-                user_id=user_pk,
-                content_type_id=ContentType.objects.get_for_model(executable).pk,
-                object_id=executable.pk,
-                object_repr=force_text(executable),
-                action_flag=ADDITION,
-                change_message='Created from file upload ({0})'.format(xbe_info_file.name)
-            )
+            log_action(executable, user_pk, log_msg)
         ret = created
 
     return ret
+
+
+def log_action(obj, user_pk, message=None):
+    LogEntry.objects.log_action(
+        user_id=user_pk,
+        content_type_id=ContentType.objects.get_for_model(obj).pk,
+        object_id=obj.pk,
+        object_repr=force_text(obj),
+        action_flag=ADDITION,
+        change_message=message
+    )
