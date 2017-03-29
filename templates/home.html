@@ -3,10 +3,28 @@
 {% block content %}
 
 <div class="container">
+    {% if upload_success %}
+    <div class="alert alert-info" role="alert">
+        {{ upload_success }}
+    </div>
+    {% endif %}
     <div class="row">
         <div class="jumbotron">
             <h1>Hello</h1>
-            <p>You are on your Dashboard</p>
+        </div>
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-heading">Xbe file info upload</div>
+        <div class="panel-body">
+            <form method="post" enctype="multipart/form-data" action="/upload">
+                {% csrf_token %}
+                <label class="control-label">Select File</label>
+                <input name="type" value="xbeinfo" hidden>
+                <label class="btn btn-default btn-file">
+                    Browse <input type="file" name="file" hidden>
+                </label>
+                <button type="submit" class="btn btn-default">Upload</button>
+            </form>
         </div>
     </div>
 </div>

@@ -7,40 +7,62 @@ class XboxTitleLog(object):
     library_re = re.compile('HLE: \* Searching HLE database for (.*) version 1.0.([0-9]{4})\.\.\. Found\n')
     function_re = re.compile('HLE: 0x([0-9A-F]{8}) -> ([^ ]*)(?: \((.*)\))?\n')
 
+    xbe_info_re = re.compile(
+            'al Signature[^<]+<Hex Dump>([^<]+)[^\0]*Title ID[^:]+: 0x([A-F0-9]{8})[^\0]+Title[^:]+: L"([^"]+)"', flags=re.M)
+
     def __init__(self, krnl_debug_name, xbe_file):
         self.source_file = krnl_debug_name
+        self.hle_detection_entry = self.parse_log(self.source_file)
 
-        self.hle_detection_entry = {
+    @staticmethod
+    def parse_xbe_info(source_file):
+        xbe_info = {
+            'signature': None,
+            'title_id': None,
+            'title_name': None,
+            'disk_path': '/',
+            'file_name': 'default.xbe'
+        }
+
+        contents = source_file.read()
+
+        m_groups = XboxTitleLog.xbe_info_re.search(contents.decode()).groups()
+
+        if m_groups and len(m_groups) == 3:
+            signature, xbe_info['title_id'], xbe_info['title_name'] = m_groups
+            xbe_info['signature'] = re.sub('[^A-F0-9]', '', signature)
+
+        return xbe_info
+
+    @staticmethod
+    def parse_log(source_file):
+        hle_detection_entry = {
             'cxbx_version': None,
             'title_id': None,
-            'certificate_signature': None,
+            'signature': None,
             'xdk_libraries': {},
             'xdk_functions': {}
         }
 
-        # TODO: Parse title info
+        for line in source_file:
 
-        self.parse_log()
+            # TODO: Account for sections, libraries and passes.
 
-    def parse_log(self):
-        with open(self.source_file) as source_file:
-            for line in source_file:
+            m = XboxTitleLog.function_re.match(line)
+            if m:
+                address, func, extra = m.groups()
+                hle_detection_entry['xdk_functions'][address] = (func, extra)
+                continue
 
-                # TODO: Account for sections, libraries and passes.
+            m = XboxTitleLog.library_re.match(line)
+            if m:
+                library, version = m.groups()
+                hle_detection_entry['xdk_libraries'][library] = version
+                continue
 
-                m = self.function_re.match(line)
-                if m:
-                    address, function, extra = m.groups()
-                    self.hle_detection_entry['xdk_functions'][address] = (function, extra)
-                    continue
+            if not hle_detection_entry['cxbx_version']:
+                version = XboxTitleLog.version_re.findall(line)
+                if version:
+                    hle_detection_entry['cxbx_version'] = version[0]
 
-                m = self.library_re.match(line)
-                if m:
-                    library, version = m.groups()
-                    self.hle_detection_entry['xdk_libraries'][library] = version
-                    continue
-
-                if not self.hle_detection_entry['cxbx_version']:
-                    version = self.version_re.findall(line)
-                    if version:
-                        self.hle_detection_entry['cxbx_version'] = version[0]
+        return hle_detection_entry
