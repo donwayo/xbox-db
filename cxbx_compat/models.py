@@ -28,3 +28,15 @@ class Build(models.Model):
 
     def __str__(self):
         return 'Cxbx-Reloaded [{0}]'.format(self.build_id)
+
+
+class Executable(models.Model):
+
+    file_name = models.CharField(max_length=256)
+    signature = models.CharField(max_length=512, unique=True)
+    disk_path = models.CharField(max_length=1024)
+
+    title = models.ForeignKey(Title)
+
+    def __str__(self):
+        return self.file_name
