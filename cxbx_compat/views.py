@@ -48,7 +48,7 @@ def process_zip(zfile, handler, request):
         if handler(zip_f.open(zipinfo), request.user.pk):
             successful += 1
 
-        yield ' '
+            yield '\r\n'
 
     success = 'Successfully processed {0}/{1}'.format(successful, total)
 
