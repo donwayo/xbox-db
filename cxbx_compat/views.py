@@ -41,14 +41,17 @@ def upload(request):
 
 def process_zip(zfile, handler, request):
     zip_f = zipfile.ZipFile(zfile)
-
+    yield '<!-- '
     total = len(zip_f.infolist())
     successful = 0
     for zipinfo in zip_f.infolist():
         if handler(zip_f.open(zipinfo), request.user.pk):
             successful += 1
+            yield 'Success\r\n'
+        else:
+            yield 'Fail\r\n'
 
-            yield '\r\n'
+    yield ' -->'
 
     success = 'Successfully processed {0}/{1}'.format(successful, total)
 
