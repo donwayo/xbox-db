@@ -3,7 +3,9 @@ import zipfile
 from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
 from django.db import IntegrityError
+from django.http import StreamingHttpResponse
 from django.shortcuts import render
+from django.template import loader
 from django.utils.encoding import force_text
 
 from xdb.utils.cxbx import XboxTitleLog
@@ -31,16 +33,28 @@ def upload(request):
                 success = 'Nothing new.'
 
         elif zipfile.is_zipfile(request.FILES['file']):
-            zip_f = zipfile.ZipFile(request.FILES['file'])
-            total = len(zip_f.infolist())
-            successful = 0
-            for zipinfo in zip_f.infolist():
-                if process_xbe_info(zip_f.open(zipinfo), request.user.pk):
-                    successful += 1
 
-            success = 'Successfully processed {0}/{1}'.format(successful, total)
+            return StreamingHttpResponse(process_zip(request.FILES['file'], process_xbe_info, request))
 
     return render(request, "home.html", {'upload_success': success})
+
+
+def process_zip(zfile, handler, request):
+    zip_f = zipfile.ZipFile(zfile)
+
+    total = len(zip_f.infolist())
+    successful = 0
+    for zipinfo in zip_f.infolist():
+        if handler(zip_f.open(zipinfo), request.user.pk):
+            successful += 1
+
+        yield ' '
+
+    success = 'Successfully processed {0}/{1}'.format(successful, total)
+
+    tpl = loader.get_template("home.html")
+
+    yield tpl.render({'upload_success': success}, request)
 
 
 def process_xbe_info(xbe_info_file, user_pk):
