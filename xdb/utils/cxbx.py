@@ -8,7 +8,7 @@ class XboxTitleLog(object):
     function_re = re.compile('HLE: 0x([0-9A-F]{8}) -> ([^ ]*)(?: \((.*)\))?\n')
 
     xbe_info_re = re.compile(
-        'al Signature[^<]+<Hex Dump>([^<]+)[^\0]*Title ID[^:]+: 0x([A-F0-9]{8})[^\0]+Title[^:]+: L?"([^"]+)"',
+        'al Signature[^<]+<Hex Dump>([^<]+)[^\0]*Title ID[^:]+: 0x([A-F0-9]{8})[^\0]+Title[^:]+: L?"([^"]*)"',
         flags=re.M
     )
     xbe_info_libs_re = re.compile(
@@ -35,12 +35,14 @@ class XboxTitleLog(object):
 
         contents = source_file.read()
 
-        m_groups = XboxTitleLog.xbe_info_re.search(contents.decode()).groups()
+        m_match = XboxTitleLog.xbe_info_re.search(contents.decode(errors='ignore'))
+
+        m_groups = m_match.groups() if m_match else None
 
         if m_groups and len(m_groups) == 3:
             signature, xbe_info['title_id'], xbe_info['title_name'] = m_groups
             xbe_info['signature'] = re.sub('[^A-F0-9]', '', signature)
-            xbe_info['libs'] = [lib.groupdict() for lib in XboxTitleLog.xbe_info_libs_re.finditer(contents.decode())]
+            xbe_info['libs'] = [lib.groupdict() for lib in XboxTitleLog.xbe_info_libs_re.finditer(contents.decode(errors='ignore'))]
 
         return xbe_info
 

@@ -2,6 +2,7 @@ import zipfile
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
+from django.db import IntegrityError
 from django.shortcuts import render
 from django.utils.encoding import force_text
 
@@ -49,40 +50,47 @@ def process_xbe_info(xbe_info_file, user_pk):
 
     if xlog['title_id']:
         log_msg = 'Created from file upload ({0})'.format(xbe_info_file.name)
+        title = None
 
-        game, created = Game.objects.get_or_create(name=xlog['title_name'])
-        if created:
-            log_action(game, user_pk, log_msg)
-
-        title, created = Title.objects.get_or_create(title_id=xlog['title_id'], game=game)
-        if created:
-            log_action(title, user_pk, log_msg)
-
-        executable, created = Executable.objects.get_or_create(
-            signature=xlog['signature'],
-            disk_path=xlog['disk_path'],
-            file_name=xlog['file_name'],
-            title=title
-        )
-
-        if created:
-            log_action(executable, user_pk, log_msg)
-        ret = created
-
-        for lib in xlog['libs']:
-            xdk_lib, created = XDKLibrary.objects.get_or_create(
-                xdk_version=int(lib['ver']),
-                qfe_version=int(lib['QFE']),
-                name=lib['name']
-            )
-            xdk_lib.save()
+        if Title.objects.filter(title_id=xlog['title_id']).exists():
+            title = Title.objects.get(title_id=xlog['title_id'])
+        else:
+            game, created = Game.objects.get_or_create(name=xlog['title_name'])
             if created:
-                log_action(xdk_lib, user_pk, log_msg)
+                log_action(game, user_pk, log_msg)
 
-            executable.xdk_libraries.add(xdk_lib)
+            title, created = Title.objects.get_or_create(title_id=xlog['title_id'], game=game)
+            if created:
+                log_action(title, user_pk, log_msg)
 
-        executable.save()
+        try:
+            executable, created = Executable.objects.get_or_create(
+                signature=xlog['signature'],
+                disk_path=xlog['disk_path'],
+                file_name=xlog['file_name'],
+                title=title
+            )
 
+            if created:
+                log_action(executable, user_pk, log_msg)
+            ret = created
+
+            for lib in xlog['libs']:
+                xdk_lib, created = XDKLibrary.objects.get_or_create(
+                    xdk_version=int(lib['ver']),
+                    qfe_version=int(lib['QFE']),
+                    name=lib['name']
+                )
+                xdk_lib.save()
+                if created:
+                    log_action(xdk_lib, user_pk, log_msg)
+
+                executable.xdk_libraries.add(xdk_lib)
+
+            executable.save()
+        except IntegrityError as ex:
+            print('Error importing {0}'.format(xbe_info_file.name))
+            pass
     return ret
 
 

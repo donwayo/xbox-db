@@ -10,7 +10,7 @@ class Game(models.Model):
 
 
 class Title(models.Model):
-    title_id = models.CharField(max_length=20, verbose_name='Title ID')
+    title_id = models.CharField(max_length=20, verbose_name='Title ID', unique=True)
     game = models.ForeignKey('Game')
 
     def __str__(self):
@@ -32,8 +32,8 @@ class Build(models.Model):
 
 class XDKLibrary(models.Model):
     name = models.CharField(max_length=255)
-    xdk_version = models.IntegerField()
-    qfe_version = models.IntegerField()
+    xdk_version = models.IntegerField(verbose_name='XDK version')
+    qfe_version = models.IntegerField(verbose_name='QFE version')
 
     class Meta:
         verbose_name_plural = 'XDK Libraries'
