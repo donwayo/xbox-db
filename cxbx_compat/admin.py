@@ -9,6 +9,11 @@ class TitleInline(admin.StackedInline):
     extra = 0
 
 
+class XDKLibraryInline(admin.StackedInline):
+    model = Executable.xdk_libraries.through
+    extra = 0
+
+
 class GameAdmin(admin.ModelAdmin):
     list_display = ('name', 'titles', 'exes')
     search_fields = ('name',)
@@ -61,8 +66,12 @@ class ExecutableAdmin(admin.ModelAdmin):
     list_display = ('executable', 'title', 'min_xdk', 'max_xdk', 'libraries')
     search_fields = ('file_name', 'title__game__name', 'title__title_id')
 
+    fields = ['file_name', 'disk_path', 'signature', 'title']
+
+    inlines = [XDKLibraryInline]
+
     def executable(self, obj):
-        return '{0}{1}'.format(obj.file_name, obj.disk_path)
+        return '{1}{0}'.format(obj.file_name, obj.disk_path)
 
     def get_queryset(self, request):
         qs = super(ExecutableAdmin, self).get_queryset(request)
