@@ -63,7 +63,7 @@ class XDKLibraryAdmin(admin.ModelAdmin):
 
 
 class ExecutableAdmin(admin.ModelAdmin):
-    list_display = ('executable', 'title', 'min_xdk', 'max_xdk', 'libraries')
+    list_display = ('executable', 'title_name', 'min_xdk', 'max_xdk', 'libraries')
     search_fields = ('file_name', 'title__game__name', 'title__title_id')
 
     fields = ['file_name', 'disk_path', 'signature', 'title']
@@ -91,9 +91,13 @@ class ExecutableAdmin(admin.ModelAdmin):
     def libraries(self, obj):
         return obj.libraries
 
+    def title_name(self, obj):
+        return obj.title
+
     min_xdk.admin_order_field = 'min_version'
     max_xdk.admin_order_field = 'max_version'
     libraries.admin_order_field = 'libraries'
+    title_name.admin_order_field = 'title__game__name'
 
 
 class TitleAdmin(admin.ModelAdmin):
