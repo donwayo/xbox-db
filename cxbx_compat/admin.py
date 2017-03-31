@@ -88,11 +88,14 @@ class ExecutableAdmin(admin.ModelAdmin):
 
 
 class TitleAdmin(admin.ModelAdmin):
-    list_display = ('title_id', 'game', 'exes')
+    list_display = ('title_id', 'game_name', 'exes')
     search_fields = ('title_id', 'game__name')
 
     def exes(self, obj):
         return obj.exes
+
+    def game_name(self, obj):
+        return obj.game
 
     def get_queryset(self, request):
         qs = super(TitleAdmin, self).get_queryset(request)
@@ -100,6 +103,7 @@ class TitleAdmin(admin.ModelAdmin):
         return qs
 
     exes.admin_order_field = 'exes'
+    game_name.admin_order_field = 'game__name'
 
 admin.site.register(Build)
 admin.site.register(Game, GameAdmin)
