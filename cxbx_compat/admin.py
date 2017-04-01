@@ -9,9 +9,11 @@ class TitleInline(admin.StackedInline):
     extra = 0
 
 
-class XDKLibraryInline(admin.StackedInline):
+class XDKLibraryInline(admin.TabularInline):
     model = Executable.xdk_libraries.through
     extra = 0
+    verbose_name = 'XDK Library'
+    verbose_name_plural = 'XDK Libraries'
 
 
 class GameAdmin(admin.ModelAdmin):
