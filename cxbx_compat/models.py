@@ -39,7 +39,7 @@ class XDKLibrary(models.Model):
         verbose_name_plural = 'XDK Libraries'
 
     def __str__(self):
-        return '[{1}] {0}'.format(self.name, self.xdk_version)
+        return '[{1}.{2}] {0}'.format(self.name, self.xdk_version, self.qfe_version)
 
 
 class Executable(models.Model):
