@@ -9,6 +9,13 @@ class TitleInline(admin.StackedInline):
     extra = 0
 
 
+class XDKLibraryInline(admin.TabularInline):
+    model = Executable.xdk_libraries.through
+    extra = 0
+    verbose_name = 'XDK Library'
+    verbose_name_plural = 'XDK Libraries'
+
+
 class GameAdmin(admin.ModelAdmin):
     list_display = ('name', 'titles', 'exes')
     search_fields = ('name',)
@@ -58,11 +65,15 @@ class XDKLibraryAdmin(admin.ModelAdmin):
 
 
 class ExecutableAdmin(admin.ModelAdmin):
-    list_display = ('executable', 'title', 'min_xdk', 'max_xdk', 'libraries')
+    list_display = ('executable', 'title_name', 'min_xdk', 'max_xdk', 'libraries')
     search_fields = ('file_name', 'title__game__name', 'title__title_id')
 
+    fields = ['file_name', 'disk_path', 'signature', 'title']
+
+    inlines = [XDKLibraryInline]
+
     def executable(self, obj):
-        return '{0}{1}'.format(obj.file_name, obj.disk_path)
+        return '{1}{0}'.format(obj.file_name, obj.disk_path)
 
     def get_queryset(self, request):
         qs = super(ExecutableAdmin, self).get_queryset(request)
@@ -82,17 +93,24 @@ class ExecutableAdmin(admin.ModelAdmin):
     def libraries(self, obj):
         return obj.libraries
 
+    def title_name(self, obj):
+        return obj.title
+
     min_xdk.admin_order_field = 'min_version'
     max_xdk.admin_order_field = 'max_version'
     libraries.admin_order_field = 'libraries'
+    title_name.admin_order_field = 'title__game__name'
 
 
 class TitleAdmin(admin.ModelAdmin):
-    list_display = ('title_id', 'game', 'exes')
+    list_display = ('title_id', 'game_name', 'exes')
     search_fields = ('title_id', 'game__name')
 
     def exes(self, obj):
         return obj.exes
+
+    def game_name(self, obj):
+        return obj.game
 
     def get_queryset(self, request):
         qs = super(TitleAdmin, self).get_queryset(request)
@@ -100,6 +118,7 @@ class TitleAdmin(admin.ModelAdmin):
         return qs
 
     exes.admin_order_field = 'exes'
+    game_name.admin_order_field = 'game__name'
 
 admin.site.register(Build)
 admin.site.register(Game, GameAdmin)
