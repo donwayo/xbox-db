@@ -40,9 +40,10 @@ class XboxTitleLog(object):
         m_groups = m_match.groups() if m_match else None
 
         if m_groups and len(m_groups) == 3:
-            signature, xbe_info['title_id'], xbe_info['title_name'] = m_groups
-            xbe_info['signature'] = re.sub('[^A-F0-9]', '', signature)
+            signature, title_id, xbe_info['title_name'] = m_groups
+            xbe_info['signature'] = re.sub('[^A-F0-9]', '', signature.upper())
             xbe_info['libs'] = [lib.groupdict() for lib in XboxTitleLog.xbe_info_libs_re.finditer(contents.decode(errors='ignore'))]
+            xbe_info['title_id'] = title_id.upper()
 
         return xbe_info
 
