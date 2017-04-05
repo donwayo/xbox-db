@@ -13,6 +13,10 @@ class Title(models.Model):
     title_id = models.CharField(max_length=20, verbose_name='Title ID', unique=True)
     game = models.ForeignKey('Game')
 
+    def save(self, force_insert=False, force_update=False, **kwargs):
+        self.title_id = self.title_id.upper()
+        super(Title, self).save(force_insert, force_update, **kwargs)
+
     def __str__(self):
         return '{0} [{1}]'.format(self.game.name, self.title_id)
 
