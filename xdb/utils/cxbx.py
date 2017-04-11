@@ -30,7 +30,8 @@ class XboxTitleLog(object):
             'title_name': None,
             'disk_path': '/',
             'file_name': 'default.xbe',
-            'libs': []
+            'libs': [],
+            'contents': ''
         }
 
         contents = source_file.read()
@@ -44,6 +45,7 @@ class XboxTitleLog(object):
             xbe_info['signature'] = re.sub('[^A-F0-9]', '', signature.upper())
             xbe_info['libs'] = [lib.groupdict() for lib in XboxTitleLog.xbe_info_libs_re.finditer(contents.decode(errors='ignore'))]
             xbe_info['title_id'] = title_id.upper()
+            xbe_info['contents'] = contents.decode(errors='ignore')
 
         return xbe_info
 

@@ -41,15 +41,18 @@ def upload(request):
 
 def process_zip(zfile, handler, request):
     zip_f = zipfile.ZipFile(zfile)
-    yield '<!-- '
+    yield '<!-- \r\n'
     total = len(zip_f.infolist())
     successful = 0
     for zipinfo in zip_f.infolist():
+        status_message = ''
         if handler(zip_f.open(zipinfo), request.user.pk):
             successful += 1
-            yield 'Success\r\n'
+            status_message = 'Success'
         else:
-            yield 'Fail\r\n'
+            status_message = 'Fail'
+
+        yield '{0} - {1}\r\n'.format(status_message, str(zipinfo))
 
     yield ' -->'
 
@@ -83,13 +86,21 @@ def process_xbe_info(xbe_info_file, user_pk):
         try:
             executable, created = Executable.objects.get_or_create(
                 signature=xlog['signature'],
-                disk_path=xlog['disk_path'],
-                file_name=xlog['file_name'],
-                title=title
+                defaults={
+                    'disk_path': xlog['disk_path'],
+                    'file_name': xlog['file_name'],
+                    'title': title,
+                    'xbe_info': xlog['contents']
+                },
+
             )
 
             if created:
                 log_action(executable, user_pk, log_msg)
+            elif not executable.xbe_info:
+                executable.xbe_info = xlog['contents']
+                print('Updated {0}'.format(executable))
+
             ret = created
 
             for lib in xlog['libs']:
