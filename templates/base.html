@@ -8,27 +8,27 @@
                 <title>Xbox DB</title>
                 <!-- Core CSS - Include with every page -->
                 <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
-        <style type="text/css">
-            .btn-file {
-                position: relative;
-                overflow: hidden;
-            }
-            .btn-file input[type=file] {
-                position: absolute;
-                top: 0;
-                right: 0;
-                min-width: 100%;
-                min-height: 100%;
-                font-size: 100px;
-                text-align: right;
-                filter: alpha(opacity=0);
-                opacity: 0;
-                outline: none;
-                background: white;
-                cursor: inherit;
-                display: block;
-            }
-        </style>
+                <style type="text/css">
+                    .btn-file {
+                        position: relative;
+                        overflow: hidden;
+                    }
+                    .btn-file input[type=file] {
+                        position: absolute;
+                        top: 0;
+                        right: 0;
+                        min-width: 100%;
+                        min-height: 100%;
+                        font-size: 100px;
+                        text-align: right;
+                        filter: alpha(opacity=0);
+                        opacity: 0;
+                        outline: none;
+                        background: white;
+                        cursor: inherit;
+                        display: block;
+                    }
+                </style>
     </head>
                 <body>
                     <nav class="navbar navbar-default">
@@ -50,17 +50,22 @@
                                         </a>
                                         <ul class="dropdown-menu" role="menu">
                                             <li>
-                                                <a href="/">home</a>
+                                                <a href="/">Home</a>
                                             </li>
+                                            {% if user.is_superuser %}
                                             <li>
-                                                <a href="#">Another action</a>
+                                                <a href="/admin">Admin</a>
                                             </li>
+                                            {% endif %}
                                             <li>
-                                                <a href="#">Something else here</a>
+                                                <a href="#">About</a>
                                             </li>
                                             <li class="divider"></li>
                                             <li>
-                                                <a href="#">Separated link</a>
+                                                <a href="/browse">Browse data</a>
+                                            </li>
+                                            <li>
+                                                <a href="/upload">Upload xbe info</a>
                                             </li>
                                             <li class="divider"></li>
                                             <li>
@@ -78,11 +83,11 @@
 
 
                     <!-- Core Scripts - Include with every page -->
-                    <script src = "https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
-                    <script src = "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+                    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+                    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
         {% block javascript %}
         {% endblock %}
-
 
             </body>
         </html>

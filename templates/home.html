@@ -10,7 +10,7 @@
     {% endif %}
     <div class="row">
         <div class="jumbotron">
-            <h1>Hello</h1>
+            <h3>Welcome to the Xbox-DB</h3><p>Log in with your Github account to upload files.</p>
         </div>
     </div>
     <div class="panel panel-default">
@@ -18,14 +18,58 @@
         <div class="panel-body">
             <form method="post" enctype="multipart/form-data" action="/upload">
                 {% csrf_token %}
-                <label class="control-label">Select File</label>
-                <input name="type" value="xbeinfo" hidden>
-                <label class="btn btn-default btn-file">
-                    Browse <input type="file" name="file" hidden>
+                <div class="input-group">
+                <label class="input-group-btn">
+                    <span class="btn btn-primary">
+                        Browse&hellip; <input type="file" style="display: none;" name="file">
+                    </span>
                 </label>
-                <button type="submit" class="btn btn-default">Upload</button>
+                <input type="text" class="form-control" readonly>
+                <label class="input-group-btn">
+                    <button type="submit" class="btn btn-primary">
+                        Upload <span class="glyphicon glyphicon-upload"></span>
+                    </button>
+                </label>
+
+            </div>
+            <span class="help-block">
+                Choose a zip file with Xbe dumps, a Xbe dump, or *.xbe.
+            </span>
             </form>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block javascript %}
+<script type="text/javascript">
+$(function() {
+
+  // We can attach the `fileselect` event to all file inputs on the page
+  $(document).on('change', ':file', function() {
+    var input = $(this),
+        numFiles = input.get(0).files ? input.get(0).files.length : 1,
+        label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
+    input.trigger('fileselect', [numFiles, label]);
+  });
+
+  // We can watch for our custom `fileselect` event like this
+  $(document).ready( function() {
+      $(':file').on('fileselect', function(event, numFiles, label) {
+
+          var input = $(this).parents('.input-group').find(':text'),
+              log = numFiles > 1 ? numFiles + ' files selected' : label;
+
+          if( input.length ) {
+              input.val(log);
+          } else {
+              if( log ) alert(log);
+          }
+
+      });
+  });
+
+});
+
+</script>
 {% endblock %}
