@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.db.models import Count, Max, Min
 from django.utils.html import format_html
+from django.utils.http import urlencode
 
 from .models import Build, Game, Title, Executable, XDKLibrary
 
@@ -8,6 +9,18 @@ from .models import Build, Game, Title, Executable, XDKLibrary
 class TitleInline(admin.StackedInline):
     model = Title
     extra = 0
+
+    readonly_fields = ['executables']
+    fields = ['executables']
+
+    def executables(self, obj):
+        return format_html('<a href="../../../executable/?q={}">{}</a>', obj.title_id, obj.exes)
+
+    def get_queryset(self, request):
+        qs = super(TitleInline, self).get_queryset(request)
+        qs = qs.annotate(exes=Count('executable'))
+
+        return qs
 
 
 class XDKLibraryInline(admin.TabularInline):
@@ -52,6 +65,8 @@ class GameAdmin(admin.ModelAdmin):
         qs = qs.annotate(titles=Count('title', distinct=True), exes=Count('title__executable'))
         return qs
 
+class ExecutableInlineT(admin.TabularInline):
+    model = Executable
 
 class ExecutableInline(admin.TabularInline):
     model = Executable.xdk_libraries.through
@@ -161,6 +176,8 @@ class ExecutableAdmin(admin.ModelAdmin):
 class TitleAdmin(admin.ModelAdmin):
     list_display = ('title_id', 'game_name', 'exes')
     search_fields = ('title_id', 'game__name')
+
+    inlines = []
 
     def exes(self, obj):
         return format_html('<a href="../executable/?q={}">{}</a>', obj.title_id, obj.exes)
