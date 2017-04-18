@@ -65,8 +65,6 @@ class GameAdmin(admin.ModelAdmin):
         qs = qs.annotate(titles=Count('title', distinct=True), exes=Count('title__executable'))
         return qs
 
-class ExecutableInlineT(admin.TabularInline):
-    model = Executable
 
 class ExecutableInline(admin.TabularInline):
     model = Executable.xdk_libraries.through
@@ -76,14 +74,24 @@ class ExecutableInline(admin.TabularInline):
     verbose_name = 'Executable'
     verbose_name_plural = 'Executables'
 
-    readonly_fields = ['executable_info']
+    readonly_fields = ['game', 'title', 'xbe']
 
-    fields = ['executable_info']
+    fields = ['xbe', 'game', 'title', ]
 
-    def executable_info(self, obj):
-        return format_html('<a href="../../../title/{}">[{}]</a><a href="../../../executable/{}">{}{}</a>',
+    def game(self, obj):
+        return format_html('<a href="../../../game/{}">{}</a>',
+                           obj.executable.title.game.id,
+                           obj.executable.title.game.name
+                           )
+
+    def title(self, obj):
+        return format_html('<a href="../../../title/{}">[{}]</a>''',
                            obj.executable.title.id,
                            obj.executable.title.title_id,
+                           )
+
+    def xbe(self, obj):
+        return format_html('<a href="../../../executable/{}">{}{}</a>',
                            obj.executable.id,
                            obj.executable.disk_path,
                            obj.executable.file_name,
@@ -92,7 +100,37 @@ class ExecutableInline(admin.TabularInline):
     def get_queryset(self, request):
         qs = super(ExecutableInline, self).get_queryset(request)
         qs = qs.prefetch_related('executable').prefetch_related('executable__title')
+        qs = qs.prefetch_related('executable__title__game')
         return qs
+
+
+class ExecutableInlineT(admin.TabularInline):
+    model = Executable
+
+    extra = 0
+
+    fields = ['xbe', 'libraries', 'min_version', 'max_version']
+    readonly_fields = fields
+
+    def get_queryset(self, request):
+        qs = super(ExecutableInlineT, self).get_queryset(request).annotate(
+            libraries=Count('xdk_libraries'),
+            max_version=Max('xdk_libraries__xdk_version'),
+            min_version=Min('xdk_libraries__xdk_version')
+        )
+        return qs
+
+    def libraries(self, obj):
+        return obj.libraries
+
+    def max_version(self, obj):
+        return obj.max_version
+
+    def min_version(self, obj):
+        return obj.min_version
+
+    def xbe(self, obj):
+        return format_html('<a href="../../../executable/{}">View more</a>', obj.id)
 
 
 class XDKLibraryAdmin(admin.ModelAdmin):
@@ -134,12 +172,17 @@ class ExecutableAdmin(admin.ModelAdmin):
         })
     )
 
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "title":
+            kwargs['queryset'] = Title.objects.all().select_related('game')
+        return super(ExecutableAdmin, self).formfield_for_foreignkey(db_field, request, **kwargs)
+
     readonly_fields = ('formatted_xbe_info',)
 
     inlines = [XDKLibraryInline]
 
     def executable(self, obj):
-        return '{1}{0}'.format(obj.file_name, obj.disk_path)
+        return str(obj)
 
     def formatted_xbe_info(self, obj):
         return format_html('<pre>\r\n\r\n{}</pre>', obj.xbe_info)
@@ -177,7 +220,7 @@ class TitleAdmin(admin.ModelAdmin):
     list_display = ('title_id', 'game_name', 'exes')
     search_fields = ('title_id', 'game__name')
 
-    inlines = []
+    inlines = [ExecutableInlineT]
 
     def exes(self, obj):
         return format_html('<a href="../executable/?q={}">{}</a>', obj.title_id, obj.exes)

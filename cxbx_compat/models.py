@@ -18,7 +18,7 @@ class Title(models.Model):
         super(Title, self).save(force_insert, force_update, **kwargs)
 
     def __str__(self):
-        return '{0} [{1}]'.format('', self.title_id)
+        return '{} [{}]'.format(self.game.name, self.title_id)
 
 
 class Build(models.Model):
@@ -59,4 +59,4 @@ class Executable(models.Model):
     xdk_libraries = models.ManyToManyField(XDKLibrary)
 
     def __str__(self):
-        return '{0}{1}{2}'.format(self.title, self.disk_path, self.file_name)
+        return '{0}{1} [{2}]'.format(self.disk_path, self.file_name, self.signature[:8])
