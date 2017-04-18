@@ -23,7 +23,7 @@ class XboxTitleLog(object):
         self.hle_detection_entry = self.parse_log(self.source_file)
 
     @staticmethod
-    def parse_xbe_info(source_file):
+    def parse_xbe_info(contents):
         xbe_info = {
             'signature': None,
             'title_id': None,
@@ -34,18 +34,16 @@ class XboxTitleLog(object):
             'contents': ''
         }
 
-        contents = source_file.read()
-
-        m_match = XboxTitleLog.xbe_info_re.search(contents.decode(errors='ignore'))
+        m_match = XboxTitleLog.xbe_info_re.search(contents)
 
         m_groups = m_match.groups() if m_match else None
 
         if m_groups and len(m_groups) == 3:
             signature, title_id, xbe_info['title_name'] = m_groups
             xbe_info['signature'] = re.sub('[^A-F0-9]', '', signature.upper())
-            xbe_info['libs'] = [lib.groupdict() for lib in XboxTitleLog.xbe_info_libs_re.finditer(contents.decode(errors='ignore'))]
+            xbe_info['libs'] = [lib.groupdict() for lib in XboxTitleLog.xbe_info_libs_re.finditer(contents)]
             xbe_info['title_id'] = title_id.upper()
-            xbe_info['contents'] = contents.decode(errors='ignore')
+            xbe_info['contents'] = contents
 
         return xbe_info
 

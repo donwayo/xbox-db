@@ -9,6 +9,7 @@ from django.template import loader
 from django.utils.encoding import force_text
 
 from xdb.utils.cxbx import XboxTitleLog
+from xdb.utils.xbe import Xbe
 from cxbx_compat.models import Title, Game, Executable, XDKLibrary
 from django.contrib.admin.models import LogEntry, ADDITION
 
@@ -27,14 +28,26 @@ def upload(request):
     if request.method == 'POST' and 'file' in request.FILES:
 
         if request.FILES['file'].content_type == 'text/plain':
-            if process_xbe_info(request.FILES['file'], request.user.pk):
+            if process_xbe_info(
+                    request.FILES.xbe_info_file.read().decode(errors='ignore'),
+                    request.FILES['file'].name,
+                    request.user.pk):
                 success = 'Successfully processed 1 file.'
             else:
                 success = 'Nothing new.'
 
         elif zipfile.is_zipfile(request.FILES['file']):
-
             return StreamingHttpResponse(process_zip(request.FILES['file'], process_xbe_info, request))
+        elif Xbe.is_xbe(request.FILES['file']):
+            xbe = Xbe(xbe_file=request.FILES['file'])
+
+            if process_xbe_info(
+                    xbe.get_dump(),
+                    request.FILES['file'].name,
+                    request.user.pk):
+                success = 'Successfully processed 1 file.'
+            else:
+                success = 'Nothing new.'
 
     return render(request, "home.html", {'upload_success': success})
 
@@ -46,7 +59,11 @@ def process_zip(zfile, handler, request):
     successful = 0
     for zipinfo in zip_f.infolist():
         status_message = ''
-        if handler(zip_f.open(zipinfo), request.user.pk):
+        file_in_zip = zip_f.open(zipinfo)
+        if handler(
+                file_in_zip.read().decode(errors='ignore'),
+                file_in_zip.name,
+                request.user.pk):
             successful += 1
             status_message = 'Success'
         else:
@@ -63,13 +80,13 @@ def process_zip(zfile, handler, request):
     yield tpl.render({'upload_success': success}, request)
 
 
-def process_xbe_info(xbe_info_file, user_pk):
+def process_xbe_info(xbe_info_file_data, xbe_info_file_name, user_pk):
     ret = False
 
-    xlog = XboxTitleLog.parse_xbe_info(xbe_info_file)
+    xlog = XboxTitleLog.parse_xbe_info(xbe_info_file_data)
 
     if xlog['title_id']:
-        log_msg = 'Created from file upload ({0})'.format(xbe_info_file.name)
+        log_msg = 'Created from file upload ({0})'.format(xbe_info_file_name)
 
         title = None
 
@@ -121,7 +138,7 @@ def process_xbe_info(xbe_info_file, user_pk):
             ret = created
 
         except IntegrityError as ex:
-            print('Error importing {0}'.format(xbe_info_file.name))
+            print('Error importing {0}'.format(xbe_info_file_name))
             pass
     return ret
 
