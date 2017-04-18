@@ -70,6 +70,7 @@ def process_xbe_info(xbe_info_file, user_pk):
 
     if xlog['title_id']:
         log_msg = 'Created from file upload ({0})'.format(xbe_info_file.name)
+
         title = None
 
         if Title.objects.filter(title_id=xlog['title_id']).exists():
@@ -97,25 +98,28 @@ def process_xbe_info(xbe_info_file, user_pk):
 
             if created:
                 log_action(executable, user_pk, log_msg)
+
+                for lib in xlog['libs']:
+                    xdk_lib, lib_created = XDKLibrary.objects.get_or_create(
+                        xdk_version=int(lib['ver']),
+                        qfe_version=int(lib['QFE']),
+                        name=lib['name']
+                    )
+
+                    if lib_created:
+                        log_action(xdk_lib, user_pk, log_msg)
+
+                    executable.xdk_libraries.add(xdk_lib)
+                    executable.xbe_info = xlog['contents']
+                executable.save()
+
             elif not executable.xbe_info:
                 executable.xbe_info = xlog['contents']
+                executable.save()
                 print('Updated {0}'.format(executable))
 
             ret = created
 
-            for lib in xlog['libs']:
-                xdk_lib, created = XDKLibrary.objects.get_or_create(
-                    xdk_version=int(lib['ver']),
-                    qfe_version=int(lib['QFE']),
-                    name=lib['name']
-                )
-                xdk_lib.save()
-                if created:
-                    log_action(xdk_lib, user_pk, log_msg)
-
-                executable.xdk_libraries.add(xdk_lib)
-
-            executable.save()
         except IntegrityError as ex:
             print('Error importing {0}'.format(xbe_info_file.name))
             pass
