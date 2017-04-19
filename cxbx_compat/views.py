@@ -95,7 +95,9 @@ def process_xbe_info(xbe_info_file_data, xbe_info_file_name, user_pk, signature_
     if signature_hash is None:
         signature_hash = Xbe.decrypt_signature(bytes.fromhex(xlog['signature']))
 
-    print('Processing "{}" [{}]...'.format(xlog['title_name'], signature_hash[:4].hex().upper()))
+    signature_hash = signature_hash.hex().upper()
+
+    print('Processing "{}" [{}]...'.format(xlog['title_name'], signature_hash[:8]))
 
     if xlog['title_id']:
         log_msg = 'Created from file upload ({0})'.format(xbe_info_file_name)
@@ -115,14 +117,14 @@ def process_xbe_info(xbe_info_file_data, xbe_info_file_name, user_pk, signature_
 
         try:
             executable, created = Executable.objects.get_or_create(
-                signature=xlog['signature'],
+                signature_hash=signature_hash,
                 defaults={
                     'disk_path': xlog['disk_path'],
                     'file_name': xlog['file_name'],
                     'title': title,
                     'xbe_info': xlog['contents'],
                     'signature_status': signature_status,
-                    'signature_hash': signature_hash.hex().upper(),
+                    'signature': xlog['signature'],
                 },
             )
 
