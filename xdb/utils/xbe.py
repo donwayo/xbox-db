@@ -161,12 +161,12 @@ class Xbe(object):
 
         return self._tls
 
-    def _read_string(self, addr, encoding='ascii'):
+    def _read_string(self, addr, encoding='ascii', max_size=1024):
         string_data = []
         self._xbe_stream.seek(addr)
         reader = codecs.getreader(encoding)(self._xbe_stream)
         c = reader.read(1)
-        while c and c != '\0':
+        while c and c != '\0' and len(string_data) < max_size:
             string_data.append(c)
             c = reader.read(1)
 
@@ -207,8 +207,9 @@ class Xbe(object):
         self._sections = {}
 
         for xbe_section_header in xbe_section_headers:
-            xbe_section = XbeSection(xbe_section_header, self._xbe_stream, self.header)
-            self._sections[xbe_section.name] = xbe_section
+            section_name = self._read_string(xbe_section_header.section_name_addr - self.header.base_addr)
+            xbe_section = XbeSection(xbe_section_header, self._xbe_stream, self.header, section_name)
+            self._sections[section_name] = xbe_section
 
         return self._sections
 
@@ -229,8 +230,8 @@ class Xbe(object):
         """
         digests = {self.sections[s].header.section_digest: self.sections[s].hash() for s in self.sections}
 
-        self._xbe_stream.seek(0)
         header_size = self.header.size_of_headers
+        self._xbe_stream.seek(0)
         header_bytes = self._xbe_stream.read(header_size)
         header_bytearray = bytearray(header_bytes)
         section_header_addr = self.header.section_headers_addr - self.header.base_addr
@@ -238,7 +239,7 @@ class Xbe(object):
         for i in range(section_header_addr + 36,
                        section_header_addr + (XbeSectionHeader.size * self.header.sections),
                        XbeSectionHeader.size):
-            header_bytearray[i:i + 20] = digests[bytes(header_bytearray[i:i + 20])]
+            header_bytearray[i:i + 20] = digests.pop(header_bytes[i:i + 20])
 
         sha1 = hashlib.sha1()
         sha1.update(struct.pack('I', header_size-260))
@@ -520,9 +521,6 @@ class XbeCert(XbeCertBase):
 
 
 class XbeSection(object):
-    @property
-    def name(self):
-        return self._name.split(b'\0')[0].decode('ascii')
 
     def hash(self):
         sha1 = hashlib.sha1()
@@ -534,7 +532,7 @@ class XbeSection(object):
     def validate(self):
         return self.hash() == self.header.section_digest
 
-    def __init__(self, xbe_section_header, xbe_stream, xbe_header):
+    def __init__(self, xbe_section_header, xbe_stream, xbe_header, section_name):
         self._data = None
 
         self._xbe_stream = xbe_stream
@@ -542,17 +540,16 @@ class XbeSection(object):
 
         self.header = xbe_section_header
 
-        # Load name
-        self._xbe_stream.seek(self.header.section_name_addr - xbe_header.base_addr)
-        self._name = self._xbe_stream.read(8)
+        self.name = section_name
 
     @property
     def data(self):
         return self._data if self._data else self.read_section_data()
 
     def read_section_data(self):
+        raw_size = self.header.raw_size
         self._xbe_stream.seek(self.header.raw_addr)
-        self._data = self._xbe_stream.read(self.header.raw_size)
+        self._data = self._xbe_stream.read(raw_size)
         return self._data
 
 
@@ -605,14 +602,25 @@ def main():
     parser.add_argument('--verify-signature', '-s', help='Only verify the digital signature.',
                         action='store_true')
 
+    parser.add_argument('--verbose', '-v', help='Be more verbose.',
+                        action='store_true')
+
     args = parser.parse_args()
 
     xbe = Xbe(args.xbe)
 
     # Verify digital signature
     if args.verify_signature:
-        # print('Signature hash (calculated): {0}'.format(xbe.calculate_hash().hex()))
-        print('Decrypted signature hash (from xbe) : {0}'.format(xbe.decrypt_signature(xbe.header.digital_signature).hex()))
+        if args.verbose:
+            for section in xbe.sections.values():
+                print('Section "{:<8}" : {} [{}]'.format(
+                    section.name,
+                    section.header.section_digest.hex().upper(),
+                    '+' if section.validate() else section.hash().hex().upper(),
+                ))
+                section.header.section_digest.hex().upper()
+            print('Signature hash (calculated): {0}'.format(xbe.calculate_hash().hex()))
+            print('Decrypted signature hash (from xbe) : {0}'.format(xbe.decrypt_signature(xbe.header.digital_signature).hex()))
         if xbe.verify_signature():
             print('Valid signature :)')
         else:
