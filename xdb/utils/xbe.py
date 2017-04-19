@@ -49,14 +49,14 @@ XbeTLSBase = namedtuple('XbeTLS',
                         )
 
 XBOX_PUBLIC_KEY_M = int.from_bytes(
-    b"\xd3\xd7N\xe5f=\xd7\xe6\xc2\xd4\xa3\xa1\xf2\x176\xd4.R\xf6\xd2\x02\x10\xf5d\x9c4{" 
-    b"\xff\xef\x7f\xc2\xee\xbd\x05\x8b\xdey\xb4w\x8e[\x8c\x14\x99\xe3\xae\xc6srs\xb5\xfb\x01[" 
-    b"XFm\xfc\x8a\xd6\x95\xda\xed\x1b./\xa2)\xe1?\xf1\xb9[" 
-    b"dQ.\xa2\xc0\xf7\xba\xb3>\x8au\xff\x06\x92\\\x07&uy\x10]G\xbe\xd1jR\x90\x0b\xaej\x0b3D\x93^\xf9" 
-    b"\x9d\xfb\x15\xd9\xa4\x1c\xcfo\xe4q\x94\xbe\x13\x00\xa8R\xca\x07\xbd'\x98\x01\xa1\x9eO\xa3\xed" 
-    b"\x9f\xa0\xaas\xc4q\xf3\xe9NrB\x9c\xf09\xce\xbe\x03v\xfa+\x89\x14\x9a\x81\x16\xc1\x80\x8c>k\xaa" 
-    b"\x05\xecgZ\xcf\xa5p\xbd`\x0c\xe87\x9d\xeb\xf4R\xeaN`\x9f\xe4i\xcfR\xdbh\xf5\x11\xcbW\x8f\x9d" 
-    b"\xa18\n\x0cG\x1b\xb4lZSn&\x98\xf1\x88\xae|\x96\xbc\xf6\xbf\xb0G\x9a\x8d\xe4\xb3\xe2\x98\x85a" 
+    b"\xd3\xd7N\xe5f=\xd7\xe6\xc2\xd4\xa3\xa1\xf2\x176\xd4.R\xf6\xd2\x02\x10\xf5d\x9c4{"
+    b"\xff\xef\x7f\xc2\xee\xbd\x05\x8b\xdey\xb4w\x8e[\x8c\x14\x99\xe3\xae\xc6srs\xb5\xfb\x01["
+    b"XFm\xfc\x8a\xd6\x95\xda\xed\x1b./\xa2)\xe1?\xf1\xb9["
+    b"dQ.\xa2\xc0\xf7\xba\xb3>\x8au\xff\x06\x92\\\x07&uy\x10]G\xbe\xd1jR\x90\x0b\xaej\x0b3D\x93^\xf9"
+    b"\x9d\xfb\x15\xd9\xa4\x1c\xcfo\xe4q\x94\xbe\x13\x00\xa8R\xca\x07\xbd'\x98\x01\xa1\x9eO\xa3\xed"
+    b"\x9f\xa0\xaas\xc4q\xf3\xe9NrB\x9c\xf09\xce\xbe\x03v\xfa+\x89\x14\x9a\x81\x16\xc1\x80\x8c>k\xaa"
+    b"\x05\xecgZ\xcf\xa5p\xbd`\x0c\xe87\x9d\xeb\xf4R\xeaN`\x9f\xe4i\xcfR\xdbh\xf5\x11\xcbW\x8f\x9d"
+    b"\xa18\n\x0cG\x1b\xb4lZSn&\x98\xf1\x88\xae|\x96\xbc\xf6\xbf\xb0G\x9a\x8d\xe4\xb3\xe2\x98\x85a"
     b"\xb1\xca_\xf7\x98Q-\x83\x81v\x0c\x88\xba\xd4\xc2\xd5<\x14\xc7r\xda~\xbd\x1bK\xa4",
     "little")
 
@@ -148,7 +148,7 @@ class Xbe(object):
             data = self._xbe_stream.read(XbeTLS.size)
             self._tls = XbeTLS.unpack(data)
         else:
-            self._tls = XbeTLS.unpack(b'\0'*24)
+            self._tls = XbeTLS.unpack(b'\0' * 24)
         return self._tls
 
     def _read_string(self, addr, encoding='ascii', rsize=1024):
@@ -212,6 +212,30 @@ class Xbe(object):
 
         return bytes(signed_digest_list)
 
+    def calculate_hash(self):
+        """
+        Recalculate section header digests and use this in turn to recalculate the xbe header's digest.
+        :return: 
+        """
+        digests = {self.sections[s].header.section_digest: self.sections[s].hash() for s in self.sections}
+
+        self._xbe_stream.seek(0)
+        header_size = self.header.size_of_headers
+        header_bytes = self._xbe_stream.read(header_size)
+        header_bytearray = bytearray(header_bytes)
+        section_header_addr = self.header.section_headers_addr - self.header.base_addr
+
+        for i in range(section_header_addr + 36,
+                       section_header_addr + (XbeSectionHeader.size * self.header.sections),
+                       XbeSectionHeader.size):
+            header_bytearray[i:i + 20] = digests[bytes(header_bytearray[i:i + 20])]
+
+        sha1 = hashlib.sha1()
+        sha1.update(struct.pack('I', header_size-260))
+        header_bytes = bytes(header_bytearray)
+        sha1.update(header_bytes[260:])
+        return sha1.digest()
+
     def verify_signature(self):
 
         self._valid_signature = False
@@ -236,7 +260,6 @@ class Xbe(object):
 
         # 3. Decrypt signature
         #    Use RSA to decrypt the digital signature and check the padding.
-
         signature_hash = Xbe.decode_signature(self.header.digital_signature)
 
         # 4. Verify that it matches to the one calculated earlier.
@@ -460,7 +483,7 @@ class XbeCert(XbeCertBase):
 
     @property
     def title_alternate_signature_keys(self):
-        return struct.unpack('16s'*16, self.title_alternate_signature_key)
+        return struct.unpack('16s' * 16, self.title_alternate_signature_key)
 
     @classmethod
     def unpack(cls, data_buffer):
@@ -473,12 +496,15 @@ class XbeSection(object):
     def name(self):
         return self._name.split(b'\0')[0].decode('ascii')
 
+    def hash(self):
+        sha1 = hashlib.sha1()
+        sha1.update(self.header.raw_size.to_bytes(4, byteorder='little'))
+        sha1.update(self.data)
+        digest = sha1.digest()
+        return digest
+
     def validate(self):
-        actual_section_digest = hashlib.sha1(b''.join([
-            self.header.raw_size.to_bytes(4, byteorder='little'),
-            self.data
-        ])).digest()
-        return actual_section_digest == self.header.section_digest
+        return self.hash() == self.header.section_digest
 
     def __init__(self, xbe_section_header, xbe_stream, xbe_header):
         self._data = None
@@ -542,8 +568,10 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description='Dump XBE information like Cxbx would.')
+
     parser.add_argument('xbe', help='Xbox executable file path.',
                         metavar='Xbox Executable', type=argparse.FileType('rb'))
+
     parser.add_argument('--verify-signature', '-s', help='Only verify the digital signature.',
                         action='store_true')
 
@@ -553,6 +581,8 @@ def main():
 
     # Verify digital signature
     if args.verify_signature:
+        # print('Signature hash (calculated): {0}'.format(xbe.calculate_hash().hex()))
+        print('Decrypted signature hash (from xbe) : {0}'.format(xbe.decode_signature(xbe.header.digital_signature).hex()))
         if xbe.verify_signature():
             print('Valid signature :)')
         else:
@@ -562,6 +592,7 @@ def main():
     # Dump information like Cxbx
 
     print(xbe.get_dump())
+
 
 # TODO: Describe the following...
 r"""
