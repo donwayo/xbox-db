@@ -28,7 +28,7 @@ def upload(request):
 
         if request.FILES['file'].content_type == 'text/plain':
             if process_xbe_info(
-                    request.FILES.xbe_info_file.read().decode(errors='ignore'),
+                    request.FILES['file'].read().decode(errors='ignore'),
                     request.FILES['file'].name,
                     request.user.pk):
                 success = 'Successfully processed 1 file.'
@@ -95,7 +95,7 @@ def process_xbe_info(xbe_info_file_data, xbe_info_file_name, user_pk, signature_
     if signature_hash is None:
         signature_hash = Xbe.decrypt_signature(bytes.fromhex(xlog['signature']))
 
-    print('Processing "{}" [{}]...'.format(xlog['title_name'], xlog['signature'][:8]))
+    print('Processing "{}" [{}]...'.format(xlog['title_name'], signature_hash[:4].hex().upper()))
 
     if xlog['title_id']:
         log_msg = 'Created from file upload ({0})'.format(xbe_info_file_name)
