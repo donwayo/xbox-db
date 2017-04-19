@@ -2,7 +2,7 @@
 # xbe.py - Xbox xbe decoder
 #
 # Based on: http://www.caustik.com/cxbx/download/xbe.htm
-# TODO: A future version of the library could use ctypes.structures to overcome this.
+# TODO: A future version of the library could use ctypes.structures?
 # TODO: Add logging
 import io
 from collections import namedtuple
@@ -11,7 +11,7 @@ import hashlib
 import datetime
 import codecs
 
-version = '1.0.0'
+version = '1.0.2'
 
 # Fields in an xbe header
 XbeHeaderBase = namedtuple('XbeHeader',
@@ -140,13 +140,25 @@ class Xbe(object):
         return self._read_string(self.header.debug_unicode_file_name_addr - self.header.base_addr, encoding='utf-16le')
 
     def _read_tls(self):
-        # TODO: Fix TLS Address calculation.
-        if self.header.tls_addr != 0 and False:
-            self._xbe_stream.seek(self.header.tls_addr - self.header.base_addr)
+        offset = None
+
+        if self.header.tls_addr == 0:
+            self._tls = XbeTLS.unpack(b'\0' * 24)
+        else:
+            if (self.header.tls_addr - self.header.base_addr) < self.header.size_of_headers:
+                offset = self.header.tls_addr - self.header.base_addr
+            else:
+                # TLS data is in some section...
+                for section in self.sections.values():
+                    if section.header.virtual_addr < self.header.tls_addr < \
+                            (section.header.virtual_addr + section.header.virtual_size):
+                        offset = self.header.tls_addr - section.header.virtual_addr + section.header.raw_addr
+                        break
+
+            self._xbe_stream.seek(offset)
             data = self._xbe_stream.read(XbeTLS.size)
             self._tls = XbeTLS.unpack(data)
-        else:
-            self._tls = XbeTLS.unpack(b'\0' * 24)
+
         return self._tls
 
     def _read_string(self, addr, encoding='ascii'):
@@ -297,7 +309,11 @@ class Xbe(object):
         dump.append('Number of Sections               : 0x{0:08X}'.format(self.header.sections))
         dump.append('Section Headers Address          : 0x{0:08X}'.format(self.header.section_headers_addr))
         dump.append('Init Flags                       : 0x{0:08X}'.format(self.header.init_flags))
-        dump.append('Entry Point                      : 0x{0:08X}'.format(self.header.entry_addr))
+        dump.append('Entry Point                      : 0x{0:08X} (Retail: 0x{1:08X}, Debug: 0x{2:08X})'.format(
+            self.header.entry_addr,
+            self.header.entry_addr_retail,
+            self.header.entry_addr_debug,
+        ))
         dump.append('TLS Address                      : 0x{0:08X}'.format(self.header.tls_addr))
         dump.append('(PE) Stack Commit                : 0x{0:08X}'.format(self.header.pe_stack_commit))
         dump.append('(PE) Heap Reserve                : 0x{0:08X}'.format(self.header.pe_heap_reserve))
@@ -317,7 +333,11 @@ class Xbe(object):
         dump.append('Debug Unicode filename Address   : 0x{r:08X} (L"{f}")'.format(
             r=self.header.debug_unicode_file_name_addr,
             f=self.debug_unicode_file_name))
-        dump.append('Kernel Image Thunk Address       : 0x{0:08X}'.format(self.header.kernel_image_thunk_addr))
+        dump.append('Kernel Image Thunk Address       : 0x{0:08X} (Retail: 0x{1:08X}, Debug: 0x{2:08X})'.format(
+            self.header.kernel_image_thunk_addr,
+            self.header.thunk_addr_retail,
+            self.header.thunk_addr_debug,
+        ))
         dump.append('NonKernel Import Dir Address     : 0x{0:08X}'.format(self.header.non_kernel_image_import_dir_addr))
         dump.append('Library Versions                 : 0x{0:08X}'.format(self.header.library_versions))
         dump.append('Library Versions Address         : 0x{0:08X}'.format(self.header.library_versions_addr))
@@ -362,10 +382,10 @@ class Xbe(object):
             dump.append('Size of Raw                      : 0x{0:08X}'.format(section.header.raw_size))
             dump.append('Section Name Address             : 0x{0:08X}'.format(section.header.section_name_addr))
             dump.append('Section Reference Count          : 0x{0:08X}'.format(section.header.section_name_ref_count))
-            dump.append(
-                'Head Shared Reference Count Addr : 0x{0:08X}'.format(section.header.head_shared_page_ref_count_addr))
-            dump.append(
-                'Tail Shared Reference Count Addr : 0x{0:08X}'.format(section.header.tail_shared_page_ref_count_addr))
+            dump.append('Head Shared Reference Count Addr : 0x{0:08X}'.format(
+                section.header.head_shared_page_ref_count_addr))
+            dump.append('Tail Shared Reference Count Addr : 0x{0:08X}'.format(
+                section.header.tail_shared_page_ref_count_addr))
             dump.append('Section Digest                   : {0}'.format(section.header.section_digest.hex().upper()))
 
             dump.append('')
@@ -397,6 +417,7 @@ class Xbe(object):
 
 
 class XbeSectionHeader(XbeSectionHeaderBase):
+    fmt = '9I20s'
     size = 56
 
     @property
@@ -425,18 +446,26 @@ class XbeSectionHeader(XbeSectionHeaderBase):
 
     @classmethod
     def unpack(cls, data_buffer):
-        data_tuple = struct.unpack('9I20s', data_buffer)
+        data_tuple = struct.unpack(cls.fmt, data_buffer)
         return cls._make(data_tuple)
 
 
 class XbeHeader(XbeHeaderBase):
+    size = 376
+    fmt = '4s256s29I'
+
     XOR_KT_DEBUG = 0xEFB1F152
     XOR_KT_RETAIL = 0x5B6D40B6
     XOR_ET_DEBUG = 0x94859D4B
     XOR_ET_RETAIL = 0xA8FC57AB
 
-    size = 376
-    fmt = '4s256s29I'
+    @property
+    def thunk_addr_retail(self):
+        return self.kernel_image_thunk_addr ^ self.XOR_KT_RETAIL
+
+    @property
+    def thunk_addr_debug(self):
+        return self.kernel_image_thunk_addr ^ self.XOR_KT_DEBUG
 
     @property
     def entry_addr_retail(self):
@@ -470,6 +499,7 @@ class XbeHeader(XbeHeaderBase):
 
 class XbeCert(XbeCertBase):
     size = 464
+    fmt = '3I80s64s5I16s16s256s'
 
     @property
     def alternate_title_ids(self):
@@ -485,7 +515,7 @@ class XbeCert(XbeCertBase):
 
     @classmethod
     def unpack(cls, data_buffer):
-        data_tuple = struct.unpack('3I80s64s5I16s16s256s', data_buffer)
+        data_tuple = struct.unpack(cls.fmt, data_buffer)
         return cls._make(data_tuple)
 
 
@@ -528,6 +558,7 @@ class XbeSection(object):
 
 class XbeLib(XbeLibBase):
     size = 16
+    fmt = '8s4H'
 
     approval = ('Unapproved', 'Possibly Approved', 'Approved')
 
@@ -549,16 +580,17 @@ class XbeLib(XbeLibBase):
 
     @classmethod
     def unpack(cls, data_buffer):
-        data_tuple = struct.unpack('8s4H', data_buffer)
+        data_tuple = struct.unpack(cls.fmt, data_buffer)
         return cls._make(data_tuple)
 
 
 class XbeTLS(XbeTLSBase):
     size = 24
+    fmt = '6I'
 
     @classmethod
     def unpack(cls, data_buffer):
-        data_tuple = struct.unpack('6I', data_buffer)
+        data_tuple = struct.unpack(cls.fmt, data_buffer)
         return cls._make(data_tuple)
 
 
@@ -588,15 +620,12 @@ def main():
         return
 
     # Dump information like Cxbx
-
     print(xbe.get_dump())
 
 
 # TODO: Describe the following...
 r"""
 Init Flags                       : 0x00000000 [Setup Harddisk] 
-Entry Point                      : 0xA8FFCB9C (Retail: 0x00039C37, Debug: 0x3C7A56D7)
-Kernel Image Thunk Address       : 0x5B763836 (Retail: 0x001B7880, Debug: 0xB4C7C964)
 
 Dumping XBE Section Headers...
 
