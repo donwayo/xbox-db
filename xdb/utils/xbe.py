@@ -112,9 +112,6 @@ class Xbe(object):
     def sections(self):
         return self._sections if self._sections else self._read_sections()
 
-    def __getitem__(self, item):
-        return self.sections[item]
-
     @property
     def tls(self):
         return self._tls if self._tls else self._read_tls()
@@ -149,7 +146,7 @@ class Xbe(object):
                 offset = self.header.tls_addr - self.header.base_addr
             else:
                 # TLS data is in some section...
-                for section in self.sections.values():
+                for section in self.sections:
                     if section.header.virtual_addr < self.header.tls_addr < \
                             (section.header.virtual_addr + section.header.virtual_size):
                         offset = self.header.tls_addr - section.header.virtual_addr + section.header.raw_addr
@@ -204,12 +201,12 @@ class Xbe(object):
             XbeSectionHeader.unpack(self._xbe_stream.read(XbeSectionHeader.size)) for _ in range(self.header.sections)
         ]
 
-        self._sections = {}
+        self._sections = []
 
         for xbe_section_header in xbe_section_headers:
             section_name = self._read_string(xbe_section_header.section_name_addr - self.header.base_addr)
             xbe_section = XbeSection(xbe_section_header, self._xbe_stream, self.header, section_name)
-            self._sections[section_name] = xbe_section
+            self._sections.append(xbe_section)
 
         return self._sections
 
@@ -228,7 +225,7 @@ class Xbe(object):
         Recalculate section header digests and use this in turn to recalculate the xbe header's digest.
         :return: 
         """
-        digests = {self.sections[s].header.section_digest: self.sections[s].hash() for s in self.sections}
+        digests = {s.header.section_digest: s.hash() for s in self.sections}
 
         header_size = self.header.size_of_headers
         self._xbe_stream.seek(0)
@@ -252,7 +249,7 @@ class Xbe(object):
         self._valid_signature = False
 
         # 1. Verify section integrity
-        sections_valid = all([s.validate() for s in self.sections.values()])
+        sections_valid = all([s.validate() for s in self.sections])
 
         if not sections_valid:
             # TODO: Raise an exception.
@@ -372,7 +369,7 @@ class Xbe(object):
         dump.append('Dumping XBE Section Headers...\r\n')
         dump.append('')
 
-        for section in self.sections.values():
+        for section in self.sections:
             dump.append('Section Name                     : 0x{0:08X} ("{1}")'.format(
                 section.header.section_name_addr,
                 section.name))
@@ -612,8 +609,8 @@ def main():
     # Verify digital signature
     if args.verify_signature:
         if args.verbose:
-            for section in xbe.sections.values():
-                print('Section "{:<8}" : {} [{}]'.format(
+            for section in xbe.sections:
+                print('Section {:<20} : {} [{}]'.format(
                     section.name,
                     section.header.section_digest.hex().upper(),
                     '+' if section.validate() else section.hash().hex().upper(),
