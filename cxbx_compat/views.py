@@ -151,10 +151,11 @@ def process_xbe_info(xbe_info_file_data, xbe_info_file_name, user_pk, signature_
                         executable.xbe_info = xlog['contents']
                     executable.signature_status = Executable.ACCEPTED
                     executable.save()
+                    print('Updated {0}'.format(executable))
                 elif not executable.xbe_info:
                     executable.xbe_info = xlog['contents']
                     executable.save()
-                print('Updated {0}'.format(executable))
+                    print('Updated {0}'.format(executable))
 
             ret = created
 
