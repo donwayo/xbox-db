@@ -58,7 +58,8 @@ class Executable(models.Model):
     )
 
     file_name = models.CharField(max_length=255)
-    signature = models.CharField(max_length=512, unique=True)
+    signature = models.CharField(max_length=512)
+    signature_hash = models.CharField(max_length=40, unique=True)
     disk_path = models.CharField(max_length=1024)
 
     title = models.ForeignKey(Title)
@@ -70,4 +71,4 @@ class Executable(models.Model):
     signature_status = models.IntegerField(choices=SIGNATURE_STATUS, default=UNKNOWN)
 
     def __str__(self):
-        return '{0}{1} [{2}]'.format(self.disk_path, self.file_name, self.signature[:8])
+        return '{0}{1} [{2}]'.format(self.disk_path, self.file_name, self.signature_hash[:8])

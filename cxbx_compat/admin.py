@@ -91,10 +91,9 @@ class ExecutableInline(admin.TabularInline):
                            )
 
     def xbe(self, obj):
-        return format_html('<a href="../../../executable/{}">{}{}</a>',
+        return format_html('<a href="../../../executable/{}">{}</a>',
                            obj.executable.id,
-                           obj.executable.disk_path,
-                           obj.executable.file_name,
+                           obj.executable
                            )
 
     def get_queryset(self, request):
@@ -159,12 +158,15 @@ class XDKLibraryAdmin(admin.ModelAdmin):
 
 
 class ExecutableAdmin(admin.ModelAdmin):
-    list_display = ('executable', 'short_signature', 'title_name', 'min_xdk', 'max_xdk', 'libraries')
+    list_display = ('executable', 'short_hash', 'title_name', 'min_xdk', 'max_xdk', 'libraries')
     search_fields = ('file_name', 'title__game__name', 'title__title_id')
 
     fieldsets = (
         (None, {
-            'fields': ('title', ('disk_path', 'file_name',), ('signature', 'signature_status'))
+            'fields': ('title', ('disk_path', 'file_name',))
+        }),
+        ('Digital signature', {
+            'fields': ('signature_hash', 'signature_status', 'signature')
         }),
         ('Original info file', {
             'classes': ['collapse'],
@@ -184,8 +186,8 @@ class ExecutableAdmin(admin.ModelAdmin):
     def executable(self, obj):
         return obj.disk_path + obj.file_name
 
-    def short_signature(self, obj):
-        return obj.signature[:8]
+    def short_hash(self, obj):
+        return obj.signature_hash[:8]
 
     def formatted_xbe_info(self, obj):
         return format_html('<pre>\r\n\r\n{}</pre>', obj.xbe_info)
@@ -217,7 +219,7 @@ class ExecutableAdmin(admin.ModelAdmin):
     max_xdk.admin_order_field = 'max_version'
     libraries.admin_order_field = 'libraries'
     title_name.admin_order_field = 'title__game__name'
-    short_signature.admin_order_field = 'signature'
+    short_hash.admin_order_field = 'signature_hash'
 
 
 class TitleAdmin(admin.ModelAdmin):

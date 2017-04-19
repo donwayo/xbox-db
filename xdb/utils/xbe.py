@@ -125,9 +125,7 @@ class Xbe(object):
 
     @property
     def valid_signature(self):
-        if self._valid_signature is None:
-            self.verify_signature()
-        return self._valid_signature
+        return self.verify_signature() if self._valid_signature is None else self._valid_signature
 
     @property
     def debug_path_name(self):
@@ -203,7 +201,7 @@ class Xbe(object):
         return self._sections
 
     @staticmethod
-    def decode_signature(digital_signature):
+    def decrypt_signature(digital_signature):
         # TODO: Check the PKCS padding, and hash type stuff.
         signature = int.from_bytes(digital_signature, 'little')
         ct_signature = mod_exp(signature, XBOX_PUBLIC_KEY_E, XBOX_PUBLIC_KEY_M).to_bytes(256, 'little')
@@ -260,7 +258,7 @@ class Xbe(object):
 
         # 3. Decrypt signature
         #    Use RSA to decrypt the digital signature and check the padding.
-        signature_hash = Xbe.decode_signature(self.header.digital_signature)
+        signature_hash = Xbe.decrypt_signature(self.header.digital_signature)
 
         # 4. Verify that it matches to the one calculated earlier.
         self._valid_signature = header_digest == signature_hash
@@ -582,7 +580,7 @@ def main():
     # Verify digital signature
     if args.verify_signature:
         # print('Signature hash (calculated): {0}'.format(xbe.calculate_hash().hex()))
-        print('Decrypted signature hash (from xbe) : {0}'.format(xbe.decode_signature(xbe.header.digital_signature).hex()))
+        print('Decrypted signature hash (from xbe) : {0}'.format(xbe.decrypt_signature(xbe.header.digital_signature).hex()))
         if xbe.verify_signature():
             print('Valid signature :)')
         else:
