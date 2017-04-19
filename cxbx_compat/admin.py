@@ -161,6 +161,8 @@ class ExecutableAdmin(admin.ModelAdmin):
     list_display = ('executable', 'short_hash', 'title_name', 'min_xdk', 'max_xdk', 'libraries')
     search_fields = ('file_name', 'title__game__name', 'title__title_id')
 
+    list_filter = ['signature_status']
+
     fieldsets = (
         (None, {
             'fields': ('title', ('disk_path', 'file_name',))
