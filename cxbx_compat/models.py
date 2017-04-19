@@ -47,6 +47,15 @@ class XDKLibrary(models.Model):
 
 
 class Executable(models.Model):
+    ACCEPTED = 1
+    UNKNOWN = 0
+    REJECTED = 2
+
+    SIGNATURE_STATUS = (
+        (UNKNOWN, 'Unknown'),
+        (ACCEPTED, 'Accepted'),
+        (REJECTED, 'Rejected')
+    )
 
     file_name = models.CharField(max_length=255)
     signature = models.CharField(max_length=512, unique=True)
@@ -57,6 +66,8 @@ class Executable(models.Model):
     xbe_info = models.TextField(blank=True, null=True)
 
     xdk_libraries = models.ManyToManyField(XDKLibrary)
+
+    signature_status = models.IntegerField(choices=SIGNATURE_STATUS, default=UNKNOWN)
 
     def __str__(self):
         return '{0}{1} [{2}]'.format(self.disk_path, self.file_name, self.signature[:8])
