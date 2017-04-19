@@ -149,7 +149,7 @@ class Xbe(object):
             self._tls = XbeTLS.unpack(b'\0' * 24)
         return self._tls
 
-    def _read_string(self, addr, encoding='ascii', rsize=1024):
+    def _read_string(self, addr, encoding='ascii'):
         string_data = []
         self._xbe_stream.seek(addr)
         reader = codecs.getreader(encoding)(self._xbe_stream)
