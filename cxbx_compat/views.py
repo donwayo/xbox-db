@@ -44,7 +44,8 @@ def upload(request):
                     xbe.get_dump(),
                     request.FILES['file'].name,
                     request.user.pk,
-                    signature_valid=xbe.verify_signature()
+                    signature_valid=xbe.valid_signature,
+                    signature_hash=None if xbe.valid_signature else xbe.calculate_hash()
             ):
                 success = 'Successfully processed 1 file.'
             else:
@@ -81,7 +82,7 @@ def process_zip(zfile, handler, request):
     yield tpl.render({'upload_success': success}, request)
 
 
-def process_xbe_info(xbe_info_file_data, xbe_info_file_name, user_pk, signature_valid=None):
+def process_xbe_info(xbe_info_file_data, xbe_info_file_name, user_pk, signature_valid=None, signature_hash=None):
     ret = False
 
     signature_status = Executable.UNKNOWN
@@ -90,6 +91,9 @@ def process_xbe_info(xbe_info_file_data, xbe_info_file_name, user_pk, signature_
         signature_status = Executable.ACCEPTED if signature_valid else Executable.REJECTED
 
     xlog = XboxTitleLog.parse_xbe_info(xbe_info_file_data)
+
+    if signature_hash is None:
+        signature_hash = Xbe.decrypt_signature(bytes.fromhex(xlog['signature']))
 
     print('Processing "{}" [{}]...'.format(xlog['title_name'], xlog['signature'][:8]))
 
@@ -117,9 +121,9 @@ def process_xbe_info(xbe_info_file_data, xbe_info_file_name, user_pk, signature_
                     'file_name': xlog['file_name'],
                     'title': title,
                     'xbe_info': xlog['contents'],
-                    'signature_status': signature_status
+                    'signature_status': signature_status,
+                    'signature_hash': signature_hash.hex().upper(),
                 },
-
             )
 
             if created:
