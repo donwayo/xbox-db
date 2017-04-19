@@ -202,6 +202,16 @@ class Xbe(object):
 
         return self._sections
 
+    @staticmethod
+    def decode_signature(digital_signature):
+        # TODO: Check the PKCS padding, and hash type stuff.
+        signature = int.from_bytes(digital_signature, 'little')
+        ct_signature = mod_exp(signature, XBOX_PUBLIC_KEY_E, XBOX_PUBLIC_KEY_M).to_bytes(256, 'little')
+        signed_digest_list = list(ct_signature[:20])
+        signed_digest_list.reverse()
+
+        return bytes(signed_digest_list)
+
     def verify_signature(self):
 
         self._valid_signature = False
@@ -226,18 +236,11 @@ class Xbe(object):
 
         # 3. Decrypt signature
         #    Use RSA to decrypt the digital signature and check the padding.
-        # TODO: Check the PKCS padding
 
-        signature = int.from_bytes(self.header.digital_signature, 'little')
-
-        ct_signature = mod_exp(signature, XBOX_PUBLIC_KEY_E, XBOX_PUBLIC_KEY_M).to_bytes(256, 'little')
+        signature_hash = Xbe.decode_signature(self.header.digital_signature)
 
         # 4. Verify that it matches to the one calculated earlier.
-        header_digest_list = list(header_digest)
-        header_digest_list.reverse()
-        reversed_header_digest = bytes(header_digest_list)
-
-        self._valid_signature = reversed_header_digest == ct_signature[:20]
+        self._valid_signature = header_digest == signature_hash
 
         return self._valid_signature
 
