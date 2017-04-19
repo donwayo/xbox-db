@@ -158,7 +158,7 @@ class XDKLibraryAdmin(admin.ModelAdmin):
 
 
 class ExecutableAdmin(admin.ModelAdmin):
-    list_display = ('executable', 'short_hash', 'title_name', 'min_xdk', 'max_xdk', 'libraries')
+    list_display = ('executable', 'short_hash', 's', 'title_name', 'min_xdk', 'max_xdk', 'libraries')
     search_fields = ('file_name', 'title__game__name', 'title__title_id')
 
     list_filter = ['signature_status']
@@ -184,6 +184,14 @@ class ExecutableAdmin(admin.ModelAdmin):
     readonly_fields = ('formatted_xbe_info',)
 
     inlines = [XDKLibraryInline]
+
+    def s(self, obj):
+        if obj.signature_status == Executable.ACCEPTED:
+            return '✔'
+        elif obj.signature_status == Executable.REJECTED:
+            return '❌'
+        elif obj.signature_status == Executable.UNKNOWN:
+            return '❓'
 
     def executable(self, obj):
         return obj.disk_path + obj.file_name
@@ -222,6 +230,8 @@ class ExecutableAdmin(admin.ModelAdmin):
     libraries.admin_order_field = 'libraries'
     title_name.admin_order_field = 'title__game__name'
     short_hash.admin_order_field = 'signature_hash'
+    s.admin_order_field = 'signature_status'
+    s.short_description = ''
 
 
 class TitleAdmin(admin.ModelAdmin):

@@ -11,7 +11,7 @@ from django.utils.encoding import force_text
 from xdb.utils.cxbx import XboxTitleLog
 from xdb.utils.xbe import Xbe
 from cxbx_compat.models import Title, Game, Executable, XDKLibrary
-from django.contrib.admin.models import LogEntry, ADDITION
+from django.contrib.admin.models import LogEntry, ADDITION, CHANGE
 
 
 # Create your views here.
@@ -146,16 +146,19 @@ def process_xbe_info(xbe_info_file_data, xbe_info_file_name, user_pk, signature_
                 executable.save()
 
             else:
+                log_msg = 'Updated from file upload ({0})'.format(xbe_info_file_name)
                 if signature_status == Executable.ACCEPTED and executable.signature_status != Executable.ACCEPTED:
                     if not executable.xbe_info:
                         executable.xbe_info = xlog['contents']
                     executable.signature_status = Executable.ACCEPTED
                     executable.save()
                     print('Updated {0}'.format(executable))
+                    log_action(executable, user_pk, log_msg, CHANGE)
                 elif not executable.xbe_info:
                     executable.xbe_info = xlog['contents']
                     executable.save()
                     print('Updated {0}'.format(executable))
+                    log_action(executable, user_pk, log_msg, CHANGE)
 
             ret = created
 
@@ -165,12 +168,12 @@ def process_xbe_info(xbe_info_file_data, xbe_info_file_name, user_pk, signature_
     return ret
 
 
-def log_action(obj, user_pk, message=None):
+def log_action(obj, user_pk, message=None, action=ADDITION):
     LogEntry.objects.log_action(
         user_id=user_pk,
         content_type_id=ContentType.objects.get_for_model(obj).pk,
         object_id=obj.pk,
         object_repr=force_text(obj),
-        action_flag=ADDITION,
+        action_flag=action,
         change_message=message
     )
