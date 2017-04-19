@@ -11,7 +11,7 @@ import hashlib
 import datetime
 import codecs
 
-version = '1.0.2'
+version = '1.0.3'
 
 # Fields in an xbe header
 XbeHeaderBase = namedtuple('XbeHeader',
