@@ -145,9 +145,15 @@ def process_xbe_info(xbe_info_file_data, xbe_info_file_name, user_pk, signature_
                     executable.xbe_info = xlog['contents']
                 executable.save()
 
-            elif not executable.xbe_info:
-                executable.xbe_info = xlog['contents']
-                executable.save()
+            else:
+                if signature_status == Executable.ACCEPTED and executable.signature_status != Executable.ACCEPTED:
+                    if not executable.xbe_info:
+                        executable.xbe_info = xlog['contents']
+                    executable.signature_status = Executable.ACCEPTED
+                    executable.save()
+                elif not executable.xbe_info:
+                    executable.xbe_info = xlog['contents']
+                    executable.save()
                 print('Updated {0}'.format(executable))
 
             ret = created
