@@ -9,6 +9,7 @@ from collections import namedtuple
 import struct
 import hashlib
 import datetime
+import codecs
 
 version = '1.0.0'
 
@@ -151,26 +152,15 @@ class Xbe(object):
         return self._tls
 
     def _read_string(self, addr, encoding='ascii', rsize=1024):
-        # TODO: do this properly: Read string until finding the UTF-16 NULL when reading utf-16 strings.
+        string_data = []
         self._xbe_stream.seek(addr)
+        reader = codecs.getreader(encoding)(self._xbe_stream)
+        c = reader.read(1)
+        while c and c != '\0':
+            string_data.append(c)
+            c = reader.read(1)
 
-        # Hack: should work *most* of the time.
-        terminator = b'\0\0' if 'utf-16' in encoding else b'\0'
-
-        data = self._xbe_stream.read(rsize)
-        read_data = []
-        while data and terminator not in data:
-            read_data.append(data)
-            data = self._xbe_stream.read(rsize)
-
-        read_data.append(data.split(terminator)[0])
-        bindata = b''.join(read_data)
-
-        # Hack: should work *most* of the time.
-        if 'utf-16' in encoding:
-            bindata += b'\0'
-
-        return bindata.decode(encoding=encoding)
+        return ''.join(string_data)
 
     def _read_libraries(self):
         self._libraries = {}
@@ -200,7 +190,6 @@ class Xbe(object):
     def _read_sections(self):
 
         self._xbe_stream.seek(self.header.section_headers_addr - self.header.base_addr)
-
         xbe_section_headers = [
             XbeSectionHeader.unpack(self._xbe_stream.read(XbeSectionHeader.size)) for _ in range(self.header.sections)
         ]
