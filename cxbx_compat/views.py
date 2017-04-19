@@ -44,7 +44,9 @@ def upload(request):
             if process_xbe_info(
                     xbe.get_dump(),
                     request.FILES['file'].name,
-                    request.user.pk):
+                    request.user.pk,
+                    signature_valid=xbe.verify_signature()
+            ):
                 success = 'Successfully processed 1 file.'
             else:
                 success = 'Nothing new.'
@@ -80,10 +82,17 @@ def process_zip(zfile, handler, request):
     yield tpl.render({'upload_success': success}, request)
 
 
-def process_xbe_info(xbe_info_file_data, xbe_info_file_name, user_pk):
+def process_xbe_info(xbe_info_file_data, xbe_info_file_name, user_pk, signature_valid=None):
     ret = False
 
+    signature_status = Executable.UNKNOWN
+
+    if signature_valid is not None:
+        signature_status = Executable.ACCEPTED if signature_valid else Executable.REJECTED
+
     xlog = XboxTitleLog.parse_xbe_info(xbe_info_file_data)
+
+    print('Processing "{}" [{}]...'.format(xlog['title_name'], xlog['signature'][:8]))
 
     if xlog['title_id']:
         log_msg = 'Created from file upload ({0})'.format(xbe_info_file_name)
@@ -108,7 +117,8 @@ def process_xbe_info(xbe_info_file_data, xbe_info_file_name, user_pk):
                     'disk_path': xlog['disk_path'],
                     'file_name': xlog['file_name'],
                     'title': title,
-                    'xbe_info': xlog['contents']
+                    'xbe_info': xlog['contents'],
+                    'signature_status': signature_status
                 },
 
             )

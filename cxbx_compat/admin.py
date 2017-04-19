@@ -164,7 +164,7 @@ class ExecutableAdmin(admin.ModelAdmin):
 
     fieldsets = (
         (None, {
-            'fields': ('title', ('disk_path', 'file_name',), 'signature')
+            'fields': ('title', ('disk_path', 'file_name',), ('signature', 'signature_status'))
         }),
         ('Original info file', {
             'classes': ['collapse'],
