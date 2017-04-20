@@ -52,7 +52,7 @@
                                             <li>
                                                 <a href="/">Home</a>
                                             </li>
-                                            {% if user.is_superuser %}
+                                            {% if user.is_staff %}
                                             <li>
                                                 <a href="/admin">Admin</a>
                                             </li>
@@ -69,7 +69,11 @@
                                             </li>
                                             <li class="divider"></li>
                                             <li>
+                                                {% if user.is_authenticated %}
                                                 <a href="/logout">Logout</a>
+                                                {% else %}
+                                                <a href="/login">Login</a>
+                                                {% endif %}
                                             </li>
                                         </ul>
                                     </li>
