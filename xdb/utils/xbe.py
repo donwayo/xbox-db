@@ -11,7 +11,7 @@ import hashlib
 import datetime
 import codecs
 
-version = '1.0.3'
+version = '1.0.4'
 
 # Fields in an xbe header
 XbeHeaderBase = namedtuple('XbeHeader',
@@ -137,21 +137,12 @@ class Xbe(object):
         return self._read_string(self.header.debug_unicode_file_name_addr - self.header.base_addr, encoding='utf-16le')
 
     def _read_tls(self):
-        offset = None
+
+        offset = self._get_raw_addr(self.header.tls_addr)
 
         if self.header.tls_addr == 0:
             self._tls = XbeTLS.unpack(b'\0' * 24)
         else:
-            if (self.header.tls_addr - self.header.base_addr) < self.header.size_of_headers:
-                offset = self.header.tls_addr - self.header.base_addr
-            else:
-                # TLS data is in some section...
-                for section in self.sections:
-                    if section.header.virtual_addr < self.header.tls_addr < \
-                            (section.header.virtual_addr + section.header.virtual_size):
-                        offset = self.header.tls_addr - section.header.virtual_addr + section.header.raw_addr
-                        break
-
             self._xbe_stream.seek(offset)
             data = self._xbe_stream.read(XbeTLS.size)
             self._tls = XbeTLS.unpack(data)
@@ -171,14 +162,30 @@ class Xbe(object):
 
     def _read_libraries(self):
         self._libraries = {}
-
-        self._xbe_stream.seek(self.header.library_versions_addr - self.header.base_addr)
-        for _ in range(self.header.library_versions):
-            xbe_data = self._xbe_stream.read(XbeLib.size)
-            lib = XbeLib.unpack(xbe_data)
-            self._libraries[lib.name] = lib
+        addr = self._get_raw_addr(self.header.library_versions_addr)
+        if addr > 0:
+            self._xbe_stream.seek(addr)
+            for _ in range(self.header.library_versions):
+                xbe_data = self._xbe_stream.read(XbeLib.size)
+                lib = XbeLib.unpack(xbe_data)
+                self._libraries[lib.name] = lib
 
         return self._libraries
+
+    def _get_raw_addr(self, addr):
+        if addr <= 0:
+            return 0
+        addr = addr
+        if addr - self.header.base_addr < self.header.size_of_headers:
+            addr = addr - self.header.base_addr
+        else:
+            # Look within sections
+            for section in self.sections:
+                if section.header.virtual_addr < self.header.tls_addr < \
+                        (section.header.virtual_addr + section.header.virtual_size):
+                    addr = addr - section.header.virtual_addr + section.header.raw_addr
+
+        return addr
 
     def _read_header(self):
 
@@ -236,7 +243,7 @@ class Xbe(object):
         for i in range(section_header_addr + 36,
                        section_header_addr + (XbeSectionHeader.size * self.header.sections),
                        XbeSectionHeader.size):
-            header_bytearray[i:i + 20] = digests.pop(header_bytes[i:i + 20])
+            header_bytearray[i:i + 20] = digests[header_bytes[i:i + 20]]
 
         sha1 = hashlib.sha1()
         sha1.update(struct.pack('I', header_size-260))
