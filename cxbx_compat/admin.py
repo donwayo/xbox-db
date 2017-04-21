@@ -168,13 +168,13 @@ class XDKLibraryAdmin(admin.ModelAdmin):
 
 
 class ExecutableAdmin(admin.ModelAdmin):
-    list_display = ('executable', 'short_hash', 's', 'title_name', 'min_xdk', 'max_xdk', 'libraries')
-    search_fields = ('file_name', 'title__game__name', 'title__title_id')
+    list_display = ('s', 'executable', 'cert_name', 'title_name', 'min_xdk', 'max_xdk', 'libraries')
+    search_fields = ('cert_name', 'file_name', 'title__game__name', 'title__title_id')
 
     list_filter = [
-        'signature_status',
         ('xdk_libraries__name', DropdownFilter),
         ('xdk_libraries__xdk_version', DropdownFilter),
+        'signature_status',
         'xdk_libraries__id'
     ]
 
@@ -183,7 +183,7 @@ class ExecutableAdmin(admin.ModelAdmin):
 
     fieldsets = (
         (None, {
-            'fields': ('title', ('disk_path', 'file_name',))
+            'fields': ('cert_name', 'title', ('disk_path', 'file_name',))
         }),
         ('Digital signature', {
             'fields': ('signature_hash', 'signature_status', 'signature')

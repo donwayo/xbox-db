@@ -58,6 +58,7 @@ class Executable(models.Model):
     )
 
     file_name = models.CharField(max_length=255)
+    cert_name = models.CharField(verbose_name='Internal name', max_length=255)
     signature = models.CharField(max_length=512)
     signature_hash = models.CharField(max_length=40, unique=True)
     disk_path = models.CharField(max_length=1024)
