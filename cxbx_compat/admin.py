@@ -199,7 +199,7 @@ class ExecutableAdmin(admin.ModelAdmin):
             kwargs['queryset'] = Title.objects.all().select_related('game')
         return super(ExecutableAdmin, self).formfield_for_foreignkey(db_field, request, **kwargs)
 
-    readonly_fields = ('formatted_xbe_info',)
+    readonly_fields = ('formatted_xbe_info', 'cert_name', 'signature', 'signature_hash')
 
     inlines = [XDKLibraryInline]
 
@@ -212,7 +212,7 @@ class ExecutableAdmin(admin.ModelAdmin):
             return '❓'
 
     def executable(self, obj):
-        return obj.disk_path + obj.file_name
+        return format_html('<a href="{}">{}{}</a>', obj.id, obj.disk_path, obj.file_name)
 
     def short_hash(self, obj):
         return obj.signature_hash[:8]
