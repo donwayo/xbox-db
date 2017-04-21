@@ -137,9 +137,9 @@ class ExecutableInlineT(admin.TabularInline):
 
 class XDKLibraryAdmin(admin.ModelAdmin):
     list_display = ('name', 'xdk_version', 'qfe_version', 'exes')
-    list_filter = ('name', 'xdk_version')
-
     inlines = [ExecutableInline]
+
+    search_fields = ('name', 'xdk_version')
 
     fieldsets = (
         (None, {
@@ -147,10 +147,17 @@ class XDKLibraryAdmin(admin.ModelAdmin):
         }),
     )
 
-    search_fields = ('name', 'xdk_version')
+    list_filter = (
+        ('name', DropdownFilter),
+        ('xdk_version', DropdownFilter),
+        'executable__id',
+    )
+
+    def get_list_filter(self, request):
+        return self.list_filter[:-1]
 
     def exes(self, obj):
-        return format_html('<a href="{}">{}</a>', obj.id, obj.exes)
+        return format_html('<a href="../executable/?xdk_libraries__id={}">{}</a>', obj.id, obj.exes)
 
     exes.admin_order_field = 'exes'
 
@@ -168,7 +175,11 @@ class ExecutableAdmin(admin.ModelAdmin):
         'signature_status',
         ('xdk_libraries__name', DropdownFilter),
         ('xdk_libraries__xdk_version', DropdownFilter),
+        'xdk_libraries__id'
     ]
+
+    def get_list_filter(self, request):
+        return self.list_filter[:-1]
 
     fieldsets = (
         (None, {
@@ -227,7 +238,7 @@ class ExecutableAdmin(admin.ModelAdmin):
         return obj.max_version
 
     def libraries(self, obj):
-        return obj.libraries
+        return format_html('<a href="../xdklibrary/?executable__id={}">{}</a>', obj.id, obj.libraries)
 
     def title_name(self, obj):
         return format_html('<a href="../game/{}">{}</a> [<a href="../title/{}">{}</a>]', obj.title.game.id, obj.title.game.name, obj.title.id, obj.title.title_id)
