@@ -35,8 +35,8 @@ class Build(models.Model):
 
 
 class XDKLibrary(models.Model):
-    name = models.CharField(max_length=255)
-    xdk_version = models.IntegerField(verbose_name='XDK version')
+    name = models.CharField(verbose_name='XDK Library', max_length=255)
+    xdk_version = models.IntegerField(verbose_name='Library XDK version')
     qfe_version = models.IntegerField(verbose_name='QFE version')
 
     class Meta:

@@ -1,9 +1,12 @@
 from django.contrib import admin
 from django.db.models import Count, Max, Min
 from django.utils.html import format_html
-from django.utils.http import urlencode
-
+from django.contrib.admin.filters import AllValuesFieldListFilter
 from .models import Build, Game, Title, Executable, XDKLibrary
+
+
+class DropdownFilter(AllValuesFieldListFilter):
+    template = 'admin/dropdown_filter.html'
 
 
 class TitleInline(admin.StackedInline):
@@ -161,7 +164,11 @@ class ExecutableAdmin(admin.ModelAdmin):
     list_display = ('executable', 'short_hash', 's', 'title_name', 'min_xdk', 'max_xdk', 'libraries')
     search_fields = ('file_name', 'title__game__name', 'title__title_id')
 
-    list_filter = ['signature_status']
+    list_filter = [
+        'signature_status',
+        ('xdk_libraries__name', DropdownFilter),
+        ('xdk_libraries__xdk_version', DropdownFilter),
+    ]
 
     fieldsets = (
         (None, {
@@ -210,6 +217,7 @@ class ExecutableAdmin(admin.ModelAdmin):
             min_version=Min('xdk_libraries__xdk_version')
         )
         qs = qs.prefetch_related('title').prefetch_related('title__game')
+
         return qs
 
     def min_xdk(self, obj):
