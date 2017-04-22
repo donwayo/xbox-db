@@ -199,7 +199,7 @@ class ExecutableAdmin(admin.ModelAdmin):
             kwargs['queryset'] = Title.objects.all().select_related('game')
         return super(ExecutableAdmin, self).formfield_for_foreignkey(db_field, request, **kwargs)
 
-    readonly_fields = ('formatted_xbe_info', 'cert_name', 'signature', 'signature_hash')
+    readonly_fields = ('formatted_xbe_info', 'signature', 'signature_hash')
 
     inlines = [XDKLibraryInline]
 

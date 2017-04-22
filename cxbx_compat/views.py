@@ -125,6 +125,7 @@ def process_xbe_info(xbe_info_file_data, xbe_info_file_name, user_pk, signature_
                     'xbe_info': xlog['contents'],
                     'signature_status': signature_status,
                     'signature': xlog['signature'],
+                    'cert_name': xlog['title_name']
                 },
             )
 
