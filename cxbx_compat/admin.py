@@ -48,7 +48,7 @@ class XDKLibraryInline(admin.TabularInline):
 
 
 class GameAdmin(admin.ModelAdmin):
-    list_display = ('name', 'titles', 'exes')
+    list_display = ('img', 'name', 'titles', 'exes')
     search_fields = ('name',)
 
     inlines = [TitleInline]
@@ -62,6 +62,9 @@ class GameAdmin(admin.ModelAdmin):
         return format_html('<a href="../executable/?q={}">{}</a>', obj.name, obj.exes)
     
     exes.admin_order_field = 'exes'
+
+    def img(self, obj):
+        return format_html('<img src="https://s3.amazonaws.com/xbox-db/{}" height="150" width="105" />', obj.image)
     
     def get_queryset(self, request):
         qs = super(GameAdmin, self).get_queryset(request)
