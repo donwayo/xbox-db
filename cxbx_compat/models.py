@@ -4,6 +4,7 @@ from django.db import models
 # Create your models here.
 class Game(models.Model):
     name = models.CharField(max_length=255, verbose_name='Game name')
+    image = models.CharField(max_length=255, verbose_name='Image')
 
     def __str__(self):
         return self.name
