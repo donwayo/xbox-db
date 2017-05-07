@@ -9,6 +9,9 @@ class Game(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        ordering = ['name']
+
 
 class Title(models.Model):
     title_id = models.CharField(max_length=20, verbose_name='Title ID', unique=True)
