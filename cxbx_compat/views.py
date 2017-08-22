@@ -183,3 +183,6 @@ def log_action(obj, user_pk, message=None, action=ADDITION):
 
 class GamesView(generic.ListView):
     model = Game
+
+    def get_queryset(self):
+        return self.model.objects.all().prefetch_related("title_set")
