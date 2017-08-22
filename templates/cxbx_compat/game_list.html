@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<ul class="list-group">
+    {% for game in object_list %}
+    <li class="list-group-item">
+        <div class="media">
+        <div class="media-left">
+            <a href="#"><img class="media-object" src="{{ game.image }}" alt="No image" width="105" height="150"></a>
+        </div>
+        <div class="media-body">
+                <h4 class="list-group-item-heading">{{ game.name }}</h4>
+                <p class="list-group-item-text">
+
+
+                    {% for title in game.title_set.all %}
+                    {{ title.title_id }}
+                    {% endfor %}
+                </p>
+        </div>
+        </div>
+    </li>
+        {% endfor %}
+</ul>
+{% endblock %}

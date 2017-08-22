@@ -7,6 +7,7 @@ from django.http import StreamingHttpResponse
 from django.shortcuts import render
 from django.template import loader
 from django.utils.encoding import force_text
+from django.views import generic
 
 from xdb.utils.cxbx import XboxTitleLog
 from xdb.utils.xbe import Xbe
@@ -178,3 +179,7 @@ def log_action(obj, user_pk, message=None, action=ADDITION):
         action_flag=action,
         change_message=message
     )
+
+
+class GamesView(generic.ListView):
+    model = Game
