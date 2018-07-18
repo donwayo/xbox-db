@@ -3,12 +3,12 @@ import re
 
 class XboxTitleLog(object):
 
-    version_re = re.compile('EmuMain: Cxbx-Reloaded Version ([0-9a-f]{8}).*\n')
+    version_re = re.compile('EmuMain: Cxbx-Reloaded Version ([^\)]+).*\n')
     library_re = re.compile('HLE: \* Searching HLE database for (.*) version 1.0.([0-9]{4})\.\.\. Found\n')
     function_re = re.compile('HLE: 0x([0-9A-F]{8}) -> ([^ ]*)(?: \((.*)\))?\n')
 
     xbe_info_re = re.compile(
-        'al Signature[^<]+<Hex Dump>([^<]+)[^\0]*Title ID[^:]+: 0x([A-F0-9]{8})[^\0]+Title[^:]+: L?"([^"]*)"',
+        'al Signature[^<]+<Hex Dump>([^<]+)[^\0]*Title ID[^:]+: 0?x?([A-F0-9]{8}|..\-\d{3})[^\0]+Title[^:]+: L?"([^"]*)"',
         flags=re.M
     )
     xbe_info_libs_re = re.compile(
@@ -42,7 +42,7 @@ class XboxTitleLog(object):
             signature, title_id, xbe_info['title_name'] = m_groups
             xbe_info['signature'] = re.sub('[^A-F0-9]', '', signature.upper())
             xbe_info['libs'] = [lib.groupdict() for lib in XboxTitleLog.xbe_info_libs_re.finditer(contents)]
-            xbe_info['title_id'] = title_id.upper()
+            xbe_info['title_id'] = title_id.upper() if '-' not in title_id else '{:02X}{:02X}{:04X}'.format(ord(title_id[0]), ord(title_id[1]), int(title_id[-3:]))
             xbe_info['contents'] = contents
 
         return xbe_info
@@ -79,3 +79,22 @@ class XboxTitleLog(object):
                     hle_detection_entry['cxbx_version'] = version[0]
 
         return hle_detection_entry
+
+if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser(description='')
+
+    parser.add_argument('xbe', help='Xbox info file path.',
+                        metavar='Xbox info', type=argparse.FileType('r'))
+
+    parser.add_argument('--verify-signature', '-s', help='Only verify the digital signature.',
+                        action='store_true')
+
+    parser.add_argument('--verbose', '-v', help='Be more verbose.',
+                        action='store_true')
+
+    args = parser.parse_args()
+    
+    
+    print(XboxTitleLog.parse_xbe_info(args.xbe.read()))
