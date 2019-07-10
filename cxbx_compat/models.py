@@ -15,7 +15,7 @@ class Game(models.Model):
 
 class Title(models.Model):
     title_id = models.CharField(max_length=20, verbose_name='Title ID', unique=True)
-    game = models.ForeignKey('Game')
+    game = models.ForeignKey('Game', on_delete=models.CASCADE)
 
     def save(self, force_insert=False, force_update=False, **kwargs):
         self.title_id = self.title_id.upper()
@@ -67,7 +67,7 @@ class Executable(models.Model):
     signature_hash = models.CharField(max_length=40, unique=True)
     disk_path = models.CharField(max_length=1024)
 
-    title = models.ForeignKey(Title)
+    title = models.ForeignKey(Title, on_delete=models.CASCADE)
 
     xbe_info = models.TextField(blank=True, null=True)
 

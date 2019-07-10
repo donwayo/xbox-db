@@ -23,8 +23,8 @@ from .forms import LoginForm
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url('', include('cxbx_compat.urls')),
-    url(r'^login/$', views.login, {'template_name': 'login.html', 'authentication_form': LoginForm}, name='login'),
-    url(r'^logout/$', views.logout, {'next_page': '/login'}),
+    url(r'^login/$', views.LoginView.as_view(template_name='login.html', authentication_form=LoginForm), name='login'),
+    url(r'^logout/', views.LogoutView.as_view(next_page='/login'), name='logout'),
     url(r'', include('social_django.urls', namespace='social')),
 ]
 

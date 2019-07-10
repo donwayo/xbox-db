@@ -1,6 +1,6 @@
-dj-database-url==0.4.1
-Django==1.10.6
-gunicorn==19.6.0
+dj-database-url>=0.5
+Django==2.2.*
+gunicorn==19.*
 psycopg2==2.*
-whitenoise==3.2
-social-auth-app-django==1.1.0
+whitenoise==3.*
+social-auth-app-django==2.*
